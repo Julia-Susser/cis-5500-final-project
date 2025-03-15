@@ -1,1 +1,12 @@
 dockerfile
+*.dbf
+*.csv
+*.prj
+*.xml
+*.sbn
+*.parquet
+*.sbx
+*.shx
+*.shp
+notes.txt
+.env
