@@ -10,3 +10,4 @@ dockerfile
 *.shp
 notes.txt
 .env
+app/server/config.json
