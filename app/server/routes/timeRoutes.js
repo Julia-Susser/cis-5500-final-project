@@ -24,7 +24,6 @@ const collisionRate = async function (req, res) {
       FROM CollisionData
       WHERE date BETWEEN $1 AND $2 AND location = $3
     `, [start_date, end_date, location]);
-    res.json(result.rows[0]);
   } catch (err) {
     console.error('Error computing collision rate:', err);
     res.status(500).send('Error computing collision rate');

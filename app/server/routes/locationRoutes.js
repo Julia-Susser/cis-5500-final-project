@@ -76,7 +76,6 @@ const safetyRanking = async function (req, res) {
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error retrieving safety ranking:', err);
-    res.status(500).send('Error retrieving safety ranking');
   }
 };
 
