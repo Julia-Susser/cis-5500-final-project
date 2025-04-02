@@ -4,9 +4,20 @@ const connection = require('../db'); // Import the database connection
 const highCollisionRate = async function (req, res) {
   try {
     const result = await connection.query(`
-      SELECT location, collision_rate
-      FROM CollisionData
-      WHERE collision_rate > (SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY collision_rate) FROM CollisionData)
+      WITH collisions_per_location AS (
+        SELECT g.location_id, g.zone, g.borough, COUNT(*)::numeric AS collision_count
+        FROM collision c
+        JOIN borough_lut b ON c.borough_id = b.borough_id
+        JOIN geometry g ON g.borough = b.borough
+        GROUP BY g.location_id, g.zone, g.borough
+      ),
+      median_rate AS (
+        SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY collision_count) AS median_collision_rate
+        FROM collisions_per_location
+      )
+      SELECT cpl.zone, cpl.borough, cpl.collision_count
+      FROM collisions_per_location cpl, median_rate
+      WHERE cpl.collision_count > median_rate.median_collision_rate
     `);
     res.json(result.rows);
   } catch (err) {
@@ -20,10 +31,11 @@ const boroughCollisionComparison = async function (req, res) {
   try {
     const { start_date, end_date } = req.query;
     const result = await connection.query(`
-      SELECT borough, COUNT(*) AS collision_count
-      FROM CollisionData
-      WHERE date BETWEEN $1 AND $2
-      GROUP BY borough
+      SELECT b.borough, COUNT(*) AS collision_count
+      FROM collision c
+      JOIN borough_lut b ON c.borough_id = b.borough_id
+      WHERE crash_date BETWEEN $1 AND $2
+      GROUP BY b.borough
       ORDER BY collision_count DESC
     `, [start_date, end_date]);
     res.json(result.rows);
@@ -37,11 +49,24 @@ const boroughCollisionComparison = async function (req, res) {
 const collisionHotspots = async function (req, res) {
   try {
     const result = await connection.query(`
-      SELECT location, COUNT(*) AS collision_count
-      FROM CollisionData
-      WHERE taxi_pickups < 10
-      GROUP BY location
-      ORDER BY collision_count DESC
+      WITH collisions_per_location AS (
+        SELECT g.location_id, g.zone, g.borough, COUNT(*) AS collision_count
+        FROM collision c
+        JOIN borough_lut b ON c.borough_id = b.borough_id
+        JOIN geometry g ON g.borough = b.borough
+        GROUP BY g.location_id, g.zone, g.borough
+      ),
+      pickups_per_location AS (
+        SELECT g.location_id, COUNT(*) AS taxi_pickups
+        FROM taxi t
+        JOIN geometry g ON t.pu_location_id = g.location_id
+        GROUP BY g.location_id
+      )
+      SELECT c.zone, c.borough, c.collision_count
+      FROM collisions_per_location c
+      LEFT JOIN pickups_per_location p ON c.location_id = p.location_id
+      WHERE COALESCE(p.taxi_pickups, 0) < 10
+      ORDER BY c.collision_count DESC
     `);
     res.json(result.rows);
   } catch (err) {
@@ -55,3 +80,4 @@ module.exports = {
   boroughCollisionComparison,
   collisionHotspots,
 };
+

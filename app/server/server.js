@@ -9,8 +9,6 @@ app.use(cors({
 }));
 
 // NYC Taxi Location PUID Analytics (Map)
-// Retrieves general analytics for a specific location.
-app.get('/location/:location_id', routes.locationAnalytics);
 // Retrieves total taxi pickups and drop-offs in a given location.
 app.get('/location/:location_id/pickups_dropoffs', routes.pickupsDropoffs);
 // Retrieves the number of collisions and injuries recorded in the area.
