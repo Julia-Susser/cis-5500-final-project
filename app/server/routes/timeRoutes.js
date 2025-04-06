@@ -1,9 +1,7 @@
-const express = require('express');
-const router = express.Router();
 const connection = require('../db').connection;
 
 // Function to analyze how safety (collisions) varies by season (Query 6)
-async function safetyBySeason(req, res) {
+const safetyBySeason = async function (req, res) {
   try {
     const result = await connection.query(`
       SELECT
@@ -24,10 +22,10 @@ async function safetyBySeason(req, res) {
     console.error('Error analyzing safety by season:', error);
     res.status(500).json({ error: 'Failed to analyze safety by season' });
   }
-}
+};
 
 // Function to compute the collision rate per 1,000 taxi rides at a location in a date range (Query 7)
-async function collisionRate(req, res) {
+const collisionRate = async function (req, res) {
   try {
     const { start_date, end_date, location_id } = req.query;
     const result = await connection.query(`
@@ -54,10 +52,10 @@ async function collisionRate(req, res) {
     console.error('Error computing collision rate:', error);
     res.status(500).json({ error: 'Failed to compute collision rate' });
   }
-}
+};
 
 // Function to find same collision date-hours (Query 8)
-async function sameCollisionDateHours(req, res) {
+const sameCollisionDateHours = async function (req, res) {
   try {
     const result = await connection.query(`
       SELECT
@@ -75,13 +73,10 @@ async function sameCollisionDateHours(req, res) {
     console.error('Error finding same collision date-hours:', error);
     res.status(500).json({ error: 'Failed to find same collision date-hours' });
   }
-}
+};
 
-// Define routes
-router.get('/safety-by-season', safetyBySeason);
-router.get('/collision-rate', collisionRate);
-router.get('/same-collision-date-hours', sameCollisionDateHours);
-
-module.exports = router;
-
-
+module.exports = {
+  safetyBySeason,
+  collisionRate,
+  sameCollisionDateHours,
+};

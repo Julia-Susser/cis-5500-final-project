@@ -1,9 +1,7 @@
-const express = require('express');
-const router = express.Router();
 const connection = require('../db').connection;
 
 // Function to find peak hours and locations for taxi activity (Query 9)
-async function peakHoursAnalysis(req, res) {
+const peakHoursAnalysis = async function (req, res) {
   try {
     const result = await connection.query(`
       SELECT g.zone, b.borough, EXTRACT(HOUR FROM t.tpep_pickup_datetime) AS hour, COUNT(*) AS activity_count
@@ -19,10 +17,10 @@ async function peakHoursAnalysis(req, res) {
     console.error('Error analyzing peak hours:', error);
     res.status(500).json({ error: 'Failed to analyze peak hours' });
   }
-}
+};
 
 // Function to find trips with outlier tips (Query 10)
-async function tipAnalysis(req, res) {
+const tipAnalysis = async function (req, res) {
   try {
     const result = await connection.query(`
       WITH tip_stats AS (
@@ -56,10 +54,10 @@ async function tipAnalysis(req, res) {
     console.error('Error analyzing tips:', error);
     res.status(500).json({ error: 'Failed to analyze tips' });
   }
-}
+};
 
 // Function to find collision hotspots with very few taxi pickups (Query 11)
-async function collisionHotspots(req, res) {
+const collisionHotspots = async function (req, res) {
   try {
     const result = await connection.query(`
       WITH taxi_activity AS (
@@ -82,10 +80,10 @@ async function collisionHotspots(req, res) {
     console.error('Error finding collision hotspots:', error);
     res.status(500).json({ error: 'Failed to find collision hotspots' });
   }
-}
+};
 
 // Function to analyze collisions and taxi pickups within 5000 units of each other (Query 12)
-async function proximityAnalysis(req, res) {
+const proximityAnalysis = async function (req, res) {
   try {
     const result = await connection.query(`
       WITH collision_points AS (
@@ -120,14 +118,40 @@ async function proximityAnalysis(req, res) {
     console.error('Error analyzing collision and taxi proximity:', error);
     res.status(500).json({ error: 'Failed to analyze collision and taxi proximity' });
   }
-}
+};
 
-// Define routes
-router.get('/peak-hours-analysis', peakHoursAnalysis);
-router.get('/tip-analysis', tipAnalysis);
-router.get('/collision-hotspots', collisionHotspots);
-router.get('/proximity-analysis', proximityAnalysis);
+// Function to retrieve collisions involving a specific street name
+const collisionsOnStreet = async function (req, res) {
+  try {
+    const streetName = req.params.street_name; // Get the street name from the request parameters
+    const result = await connection.query(`
+      SELECT *
+      FROM collision c
+      WHERE EXISTS (
+          SELECT 1
+          FROM cross_street_lut x
+          WHERE x.cross_street_id = c.cross_street_name_id
+            AND x.cross_street_name ILIKE $1
+      )
+      OR EXISTS (
+          SELECT 1
+          FROM off_street_lut o
+          WHERE o.off_street_id = c.off_street_name_id
+            AND o.off_street_name ILIKE $1
+      )
+      ORDER BY c.crash_date DESC;
+    `, [`%${streetName}%`]); // Use parameterized query to prevent SQL injection
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error retrieving collisions on street:', err);
+    res.status(500).send('Error retrieving collisions on street');
+  }
+};
 
-module.exports = router;
-
-
+module.exports = {
+  peakHoursAnalysis,
+  tipAnalysis,
+  collisionHotspots,
+  proximityAnalysis,
+  collisionsOnStreet,
+};
