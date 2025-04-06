@@ -1,7 +1,9 @@
-const connection = require('../db'); // Import the database connection
+const express = require('express');
+const router = express.Router();
+const connection = require('../db').connection;
 
-// Function to analyze how safety (collisions) varies by season
-const safetyBySeason = async function (req, res) {
+// Function to analyze how safety (collisions) varies by season (Query 6)
+async function safetyBySeason(req, res) {
   try {
     const result = await connection.query(`
       SELECT
@@ -18,14 +20,14 @@ const safetyBySeason = async function (req, res) {
       ORDER BY collision_count DESC
     `);
     res.json(result.rows);
-  } catch (err) {
-    console.error('Error analyzing safety by season:', err);
-    res.status(500).send('Error analyzing safety by season');
+  } catch (error) {
+    console.error('Error analyzing safety by season:', error);
+    res.status(500).json({ error: 'Failed to analyze safety by season' });
   }
-};
+}
 
 // Function to compute the collision rate per 1,000 taxi rides at a location in a date range
-const collisionRate = async function (req, res) {
+async function collisionRate(req, res) {
   try {
     const { start_date, end_date, location_id } = req.query;
     const result = await connection.query(`
@@ -33,14 +35,14 @@ const collisionRate = async function (req, res) {
         SELECT COUNT(*) AS collisions
         FROM collision c
         JOIN borough_lut b ON c.borough_id = b.borough_id
-        JOIN geometry g ON g.borough = b.borough
+        JOIN nyc_geometry g ON g.borough_id = b.borough_id
         WHERE c.crash_date BETWEEN $1 AND $2
           AND g.location_id = $3
       ),
       taxi_count AS (
         SELECT COUNT(*) AS taxi_rides
         FROM taxi t
-        JOIN geometry g ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
+        JOIN nyc_geometry g ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
         WHERE t.tpep_pickup_datetime BETWEEN $1 AND $2
           AND g.location_id = $3
       )
@@ -48,14 +50,14 @@ const collisionRate = async function (req, res) {
       FROM collisions_count c, taxi_count t
     `, [start_date, end_date, location_id]);
     res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error computing collision rate:', err);
-    res.status(500).send('Error computing collision rate');
+  } catch (error) {
+    console.error('Error computing collision rate:', error);
+    res.status(500).json({ error: 'Failed to compute collision rate' });
   }
-};
+}
 
 // Function to identify accident spikes in areas with high pickup density
-const accidentSpikes = async function (req, res) {
+async function accidentSpikes(req, res) {
   try {
     const result = await connection.query(`
       WITH pickup_density AS (
@@ -65,47 +67,48 @@ const accidentSpikes = async function (req, res) {
         HAVING COUNT(*) > 1000
       )
       SELECT DATE_TRUNC('month', c.crash_date) AS month, COUNT(*) AS accident_count
-      FROM collisions c
+      FROM collision c
       JOIN borough_lut b ON c.borough_id = b.borough_id
-      JOIN geometry g ON b.borough = g.borough
+      JOIN nyc_geometry g ON g.borough_id = b.borough_id
       JOIN pickup_density pd ON g.location_id = pd.pu_location_id
       GROUP BY month
       HAVING COUNT(*) > 100
       ORDER BY month
     `);
     res.json(result.rows);
-  } catch (err) {
-    console.error('Error identifying accident spikes:', err);
-    res.status(500).send('Error identifying accident spikes');
+  } catch (error) {
+    console.error('Error identifying accident spikes:', error);
+    res.status(500).json({ error: 'Failed to identify accident spikes' });
   }
-};
+}
 
-const sameCollisionDateHours = async function (req, res) {
-    try {
-      const result = await connection.query(`
-        SELECT
-          DATE(crash_date) AS date,
-          EXTRACT(HOUR FROM crash_time::time) AS hour,
-          COUNT(*) AS collision_count
-        FROM collision
-        WHERE crash_date IS NOT NULL AND crash_time IS NOT NULL
-        GROUP BY date, hour
-        HAVING COUNT(*) > 1
-        ORDER BY collision_count DESC
-      `);
-      res.json(result.rows);
-    } catch (err) {
-      console.error('Error finding same collision date-hours:', err);
-      res.status(500).send('Error finding same collision date-hours');
-    }
-  };
-  
+// Function to find same collision date-hours
+async function sameCollisionDateHours(req, res) {
+  try {
+    const result = await connection.query(`
+      SELECT
+        DATE(crash_date) AS date,
+        EXTRACT(HOUR FROM crash_time::time) AS hour,
+        COUNT(*) AS collision_count
+      FROM collision
+      WHERE crash_date IS NOT NULL AND crash_time IS NOT NULL
+      GROUP BY date, hour
+      HAVING COUNT(*) > 1
+      ORDER BY collision_count DESC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error finding same collision date-hours:', error);
+    res.status(500).json({ error: 'Failed to find same collision date-hours' });
+  }
+}
 
-module.exports = {
-  safetyBySeason,
-  collisionRate,
-  accidentSpikes,
-  sameCollisionDates,
-};
+// Define routes
+router.get('/safety-by-season', safetyBySeason);
+router.get('/collision-rate', collisionRate);
+router.get('/accident-spikes', accidentSpikes);
+router.get('/same-collision-date-hours', sameCollisionDateHours);
+
+module.exports = router;
 
 

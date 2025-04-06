@@ -4,9 +4,8 @@ const config = require('./config.json')
 
 // Import route handlers
 const { pickupsDropoffs, collisionsInjuries, fareTripDistance, safetyRanking } = require('./routes/locationRoutes');
-const { fareAnalysis, tripDistanceAnalysis, peakHoursAnalysis, highFareTripsAnalysis, tipAnalysis } = require('./routes/areaRoutes');
-const { highCollisionRate, boroughCollisionComparison, collisionHotspots } = require('./routes/collisionRoutes');
-const { safetyBySeason, collisionRate, accidentSpikes, sameCollisionDates } = require('./routes/timeRoutes');
+const { fareAnalysis, tripDistanceAnalysis, peakHoursAnalysis, highFareTripsAnalysis, tipAnalysis, collisionHotspots, proximityAnalysis } = require('./routes/areaRoutes');
+const { safetyBySeason } = require('./routes/timeRoutes');
 
 module.exports = {
   pickupsDropoffs,
@@ -16,13 +15,9 @@ module.exports = {
   fareAnalysis,
   tripDistanceAnalysis,
   peakHoursAnalysis,
-  highFareTripsAnalysis,
   tipAnalysis,
-  highCollisionRate,
-  boroughCollisionComparison,
   collisionHotspots,
   safetyBySeason,
-  collisionRate,
-  accidentSpikes,
-  sameCollisionDates,
+  proximityAnalysis,
+  highFareTripsAnalysis
 };

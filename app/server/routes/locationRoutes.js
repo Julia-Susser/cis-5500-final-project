@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const connection = require('../db').connection;
 
-// Get total taxi pickups and drop-offs
+// Get total taxi pickups and drop-offs (Query 1)
 async function pickupsDropoffs(req, res) {
   try {
     const result = await connection.query(`
@@ -12,7 +12,7 @@ async function pickupsDropoffs(req, res) {
         b.borough,
         COUNT(CASE WHEN t.pu_location_id = g.location_id THEN 1 END) AS pickup_count,
         COUNT(CASE WHEN t.do_location_id = g.location_id THEN 1 END) AS dropoff_count
-      FROM geometry g
+      FROM nyc_geometry g
       JOIN borough_lut b ON g.borough_id = b.borough_id
       LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
       GROUP BY g.zone, g.location_id, b.borough
@@ -25,7 +25,7 @@ async function pickupsDropoffs(req, res) {
   }
 }
 
-// Get number of collisions and injuries
+// Get number of collisions and injuries (Query 2)
 async function collisionsInjuries(req, res) {
   try {
     const result = await connection.query(`
@@ -35,7 +35,7 @@ async function collisionsInjuries(req, res) {
         b.borough,
         COUNT(c.*) AS collision_count,
         COALESCE(SUM(c.number_of_persons_injured), 0) AS total_injuries
-      FROM geometry g
+      FROM nyc_geometry g
       JOIN borough_lut b ON g.borough_id = b.borough_id
       LEFT JOIN collision c ON c.borough_id = g.borough_id
       GROUP BY g.zone, g.location_id, b.borough
@@ -48,7 +48,7 @@ async function collisionsInjuries(req, res) {
   }
 }
 
-// Get average fare and trip distance
+// Get average fare and trip distance (Query 3)
 async function fareTripDistance(req, res) {
   try {
     const result = await connection.query(`
@@ -58,7 +58,7 @@ async function fareTripDistance(req, res) {
         b.borough,
         AVG(t.fare_amount) AS avg_fare,
         AVG(t.trip_distance) AS avg_distance
-      FROM geometry g
+      FROM nyc_geometry g
       JOIN borough_lut b ON g.borough_id = b.borough_id
       LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
       GROUP BY g.zone, g.location_id, b.borough
@@ -71,7 +71,7 @@ async function fareTripDistance(req, res) {
   }
 }
 
-// Get safety and taxi availability ranking
+// Get safety and taxi availability ranking (Query 4)
 async function safetyRanking(req, res) {
   try {
     const result = await connection.query(`
@@ -83,7 +83,7 @@ async function safetyRanking(req, res) {
           COUNT(c.*) AS collision_count,
           COALESCE(SUM(c.number_of_persons_injured), 0) AS total_injuries,
           COUNT(CASE WHEN t.pu_location_id = g.location_id THEN 1 END) AS pickup_count
-        FROM geometry g
+        FROM nyc_geometry g
         JOIN borough_lut b ON g.borough_id = b.borough_id
         LEFT JOIN collision c ON c.borough_id = g.borough_id
         LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
@@ -108,38 +108,10 @@ async function safetyRanking(req, res) {
   }
 }
 
-// Get valid location IDs (zones with both taxi activity and collisions)
-async function validLocations(req, res) {
-  try {
-    const result = await connection.query(`
-      WITH collision_boroughs AS (
-        SELECT DISTINCT borough_id
-        FROM collision
-      ),
-      taxi_zones AS (
-        SELECT DISTINCT pu_location_id AS location_id FROM taxi
-        UNION
-        SELECT DISTINCT do_location_id FROM taxi
-      )
-      SELECT DISTINCT g.zone, g.location_id, b.borough
-      FROM geometry g
-      JOIN borough_lut b ON g.borough_id = b.borough_id
-      JOIN collision_boroughs cb ON g.borough_id = cb.borough_id
-      JOIN taxi_zones tz ON g.location_id = tz.location_id
-      ORDER BY g.zone
-    `);
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching valid location IDs:', error);
-    res.status(500).json({ error: 'Failed to fetch valid location IDs' });
-  }
-}
-
 // Define routes
 router.get('/pickups-dropoffs', pickupsDropoffs);
 router.get('/collisions-injuries', collisionsInjuries);
 router.get('/fare-trip-distance', fareTripDistance);
 router.get('/safety-ranking', safetyRanking);
-router.get('/valid-locations', validLocations);
 
 module.exports = router;

@@ -31,10 +31,10 @@ WHERE ctid NOT IN (
     GROUP BY collision_id
 );
 
-DELETE FROM geometry_df
+DELETE FROM nyc_geometry_df
 WHERE ctid NOT IN (
     SELECT MIN(ctid)
-    FROM geometry_df
+    FROM nyc_geometry_df
     GROUP BY "LocationID"
 );
 
@@ -44,7 +44,7 @@ ALTER TABLE contributing_factor_lut ADD PRIMARY KEY (contributing_factor_id);
 ALTER TABLE cross_street_lut ADD PRIMARY KEY (cross_street_id);
 ALTER TABLE off_street_lut ADD PRIMARY KEY (off_street_id);
 ALTER TABLE collisions_df ADD PRIMARY KEY (collision_id);
-ALTER TABLE geometry_df ADD PRIMARY KEY ("LocationID");
+ALTER TABLE nyc_geometry_df ADD PRIMARY KEY ("LocationID");
 ALTER TABLE taxi_df ADD COLUMN trip_id SERIAL PRIMARY KEY;
 
 -- Alter column types
@@ -64,13 +64,13 @@ ALTER COLUMN off_street_name_id TYPE integer USING off_street_name_id::integer;
 ALTER TABLE taxi_df
 ADD CONSTRAINT fk_taxi_pickup_location
 FOREIGN KEY (PULocationID)
-REFERENCES geometry_df (LocationID)
+REFERENCES nyc_geometry_df (LocationID)
 NOT VALID;
 
 ALTER TABLE taxi_df
 ADD CONSTRAINT fk_taxi_dropoff_location
 FOREIGN KEY (DOLocationID)
-REFERENCES geometry_df (LocationID)
+REFERENCES nyc_geometry_df (LocationID)
 NOT VALID;
 
 ALTER TABLE collisions_df
@@ -96,13 +96,13 @@ REFERENCES off_street_lut (off_street_id);
 -- Rename tables
 ALTER TABLE collisions_df RENAME TO collision;
 ALTER TABLE taxi_df RENAME TO taxi;
-ALTER TABLE geometry_df RENAME TO geometry;
+ALTER TABLE nyc_geometry_df RENAME TO nyc_geometry;
 
 -- Rename columns
-ALTER TABLE geometry RENAME COLUMN "LocationID" TO location_id;
-ALTER TABLE geometry RENAME COLUMN "Shape_Leng" TO shape_leng;
-ALTER TABLE geometry RENAME COLUMN "Shape_Area" TO shape_area;
-ALTER TABLE geometry RENAME COLUMN "OBJECTID" TO object_id;
+ALTER TABLE nyc_geometry RENAME COLUMN "LocationID" TO location_id;
+ALTER TABLE nyc_geometry RENAME COLUMN "Shape_Leng" TO shape_leng;
+ALTER TABLE nyc_geometry RENAME COLUMN "Shape_Area" TO shape_area;
+ALTER TABLE nyc_geometry RENAME COLUMN "OBJECTID" TO object_id;
 ALTER TABLE taxi RENAME COLUMN "VendorID" TO vendor_id;
 ALTER TABLE taxi RENAME COLUMN "RatecodeID" TO ratecode_id;
 ALTER TABLE taxi RENAME COLUMN "PULocationID" TO pu_location_id;
@@ -113,9 +113,9 @@ ALTER TABLE taxi RENAME COLUMN "Airport_fee" TO airport_fee;
 UPDATE borough_lut
 SET borough = INITCAP(borough);
 
----- connect borough to geometry like make geometry have fk to borough_lut
+---- connect borough to nyc_geometry like make nyc_geometry have fk to borough_lut
 SELECT DISTINCT g.borough
-FROM geometry g
+FROM nyc_geometry g
 LEFT JOIN borough_lut b ON g.borough = b.borough
 WHERE b.borough IS NULL;
 
@@ -125,21 +125,21 @@ INSERT INTO borough_lut (borough_id, borough)
 VALUES (6, 'EWR');  -- use next available ID
 
 
-ALTER TABLE geometry ADD COLUMN borough_id INT;
-ALTER TABLE geometry
+ALTER TABLE nyc_geometry ADD COLUMN borough_id INT;
+ALTER TABLE nyc_geometry
 ADD CONSTRAINT fk_geometry_borough
 FOREIGN KEY (borough_id) REFERENCES borough_lut(borough_id);
 
 
-ALTER TABLE geometry DROP COLUMN borough;
+ALTER TABLE nyc_geometry DROP COLUMN borough;
 
 
 
 
 -- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_geometry_location_id ON geometry(location_id);
-CREATE INDEX IF NOT EXISTS idx_geometry_borough ON geometry(borough);
-CREATE INDEX IF NOT EXISTS idx_geometry_zone ON geometry(zone);
+CREATE INDEX IF NOT EXISTS idx_geometry_location_id ON nyc_geometry(location_id);
+CREATE INDEX IF NOT EXISTS idx_geometry_borough ON nyc_geometry(borough);
+CREATE INDEX IF NOT EXISTS idx_geometry_zone ON nyc_geometry(zone);
 
 CREATE INDEX IF NOT EXISTS idx_taxi_pu_location_id ON taxi(pu_location_id);
 CREATE INDEX IF NOT EXISTS idx_taxi_do_location_id ON taxi(do_location_id);
@@ -185,7 +185,7 @@ SELECT
   g.borough,
   COUNT(c.*) AS collision_count,
   COALESCE(SUM(c.number_of_persons_injured), 0) AS total_injuries
-FROM geometry g
+FROM nyc_geometry g
 LEFT JOIN collision c ON c.borough_id = (
   SELECT borough_id FROM borough_lut WHERE borough = g.borough
 )
@@ -203,7 +203,7 @@ SELECT
   AVG(t.fare_amount) AS avg_fare,
   AVG(t.trip_distance) AS avg_distance,
   AVG(t.tip_amount) AS avg_tip
-FROM geometry g
+FROM nyc_geometry g
 LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
 GROUP BY g.location_id, g.zone, g.borough;
 

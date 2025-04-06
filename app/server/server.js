@@ -29,23 +29,16 @@ app.get('/area/peak_hours', routes.peakHoursAnalysis);
 app.get('/area/high_fare_trips', routes.highFareTripsAnalysis);
 // Analyzes locations that give more tips than X% of other locations.
 app.get('/area/tip_analysis', routes.tipAnalysis);
+// Locates collision hotspots with very few taxi pickups, making them risky for pedestrians.
+app.get('/area/collision_hotspots', routes.collisionHotspots);
 
 // Search Page: Time-Based Collision & Safety Data
 // Analyzes how safety varies by season (e.g., winter vs. summer).
 app.get('/time/safety_by_season', routes.safetyBySeason);
-app.get('/time/collision_rate', routes.collisionRate);
-// Identifies months or seasons with accident spikes in high-density taxi areas.
-app.get('/time/accident_spikes', routes.accidentSpikes);
-// Finds dates with the same number of collisions.
-app.get('/time/same_collision_dates', routes.sameCollisionDates);
 
 // Search Page: Collision analysis based on area
-// Identifies locations where the collision rate is higher than the city-wide median.
-app.get('/collision/high_rate', routes.highCollisionRate);
-// Finds locations where the number of collisions exceeds all other boroughs in a given time frame.
-app.get('/collision/borough_comparison', routes.boroughCollisionComparison);
-// Locates collision hotspots with very few taxi pickups, making them risky for pedestrians.
-app.get('/collision/hotspots', routes.collisionHotspots);
+// Analyzes collisions and taxi pickups within 5000 units of each other.
+app.get('/collision/proximity_analysis', routes.proximityAnalysis);
 
 app.listen(config.server_port, () => {
   console.log(`Server running at http://${config.server_host}:${config.server_port}/`)
