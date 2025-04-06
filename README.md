@@ -27,27 +27,45 @@ final-project/
 ├── frontend/                    # Directory for the frontend application (currently empty).
 ```
 
-### File Descriptions
-server:
+## File Descriptions
+
+### Backend Server
 Contains the backend server code, including database connection, route handlers, and server initialization.
 
-input:
-Stores raw input files used for data ingestion and processing.
-Example files:
-taxi_data.csv: Raw taxi trip data.
-collision_data.csv: Raw collision data.
-geometry_data.json: Raw geometry data for NYC zones.
+- **`db.js`**: Manages the PostgreSQL database connection.
+- **`server.js`**: Initializes the Express server and defines API endpoints.
+- **`routes/`**:
+  - **`locationRoutes.js`**: Location-based analytics (e.g., pickups, drop-offs, safety rankings).
+  - **`areaRoutes.js`**: Area-based analytics (e.g., peak hours, tip analysis, collision hotspots).
+  - **`timeRoutes.js`**: Time-based analytics (e.g., safety by season, collision rates).
+  - **`collisionRoutes.js`**: Collision-related analytics (e.g., proximity analysis, collisions on streets).
+- **`config.json`**: Stores database credentials and server settings.
+- **`routes.js`**: Aggregates and exports all route handlers.
 
-src:
-Contains scripts and notebooks for pre-processing, performing eda on raw data and uploading to sql.
-- processing.ipynb: Jupyter Notebook for cleaning and transforming raw data.
-- populate_database.txt: SQL script for populating the database with processed data.
-
-frontend/:
-- Placeholder directory for the frontend
 ---
 
-## Frontend
+### Input
+Stores raw input files for data ingestion.
+
+- **`taxi_data.csv`**: Raw taxi trip data.
+- **`collision_data.csv`**: Raw collision data.
+- **`geometry_data.json`**: Raw geometry data for NYC zones.
+
+---
+
+### Data Processing (`src/`)
+Scripts and notebooks for cleaning and transforming raw data.
+
+- **`processing.ipynb`**: Jupyter Notebook for data cleaning and transformation.
+- **`populate_database.txt`**: SQL script for populating the database.
+- **`schema.sql`**: SQL script for creating the database schema.
+
+---
+
+### Frontend
+- **`frontend/`**: Placeholder for the frontend application.
+  - Add files like `index.html`, `styles.css`, and `app.js` here.
+
 
 
 ## API Endpoints
