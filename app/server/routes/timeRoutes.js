@@ -26,7 +26,7 @@ async function safetyBySeason(req, res) {
   }
 }
 
-// Function to compute the collision rate per 1,000 taxi rides at a location in a date range
+// Function to compute the collision rate per 1,000 taxi rides at a location in a date range (Query 7)
 async function collisionRate(req, res) {
   try {
     const { start_date, end_date, location_id } = req.query;
@@ -56,33 +56,7 @@ async function collisionRate(req, res) {
   }
 }
 
-// Function to identify accident spikes in areas with high pickup density
-async function accidentSpikes(req, res) {
-  try {
-    const result = await connection.query(`
-      WITH pickup_density AS (
-        SELECT pu_location_id, COUNT(*) AS pickups
-        FROM taxi
-        GROUP BY pu_location_id
-        HAVING COUNT(*) > 1000
-      )
-      SELECT DATE_TRUNC('month', c.crash_date) AS month, COUNT(*) AS accident_count
-      FROM collision c
-      JOIN borough_lut b ON c.borough_id = b.borough_id
-      JOIN nyc_geometry g ON g.borough_id = b.borough_id
-      JOIN pickup_density pd ON g.location_id = pd.pu_location_id
-      GROUP BY month
-      HAVING COUNT(*) > 100
-      ORDER BY month
-    `);
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error identifying accident spikes:', error);
-    res.status(500).json({ error: 'Failed to identify accident spikes' });
-  }
-}
-
-// Function to find same collision date-hours
+// Function to find same collision date-hours (Query 8)
 async function sameCollisionDateHours(req, res) {
   try {
     const result = await connection.query(`
@@ -106,7 +80,6 @@ async function sameCollisionDateHours(req, res) {
 // Define routes
 router.get('/safety-by-season', safetyBySeason);
 router.get('/collision-rate', collisionRate);
-router.get('/accident-spikes', accidentSpikes);
 router.get('/same-collision-date-hours', sameCollisionDateHours);
 
 module.exports = router;
