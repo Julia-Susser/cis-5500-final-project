@@ -1,0 +1,214 @@
+-- SQL Commands for Database Population and Optimization
+-- Extracted from processing.ipynb
+
+
+-- Remove duplicates from tables
+CREATE TABLE borough_lut_temp AS
+SELECT DISTINCT * FROM borough_lut;
+DROP TABLE borough_lut;
+ALTER TABLE borough_lut_temp RENAME TO borough_lut;
+
+CREATE TABLE contributing_factor_lut_temp AS
+SELECT DISTINCT * FROM contributing_factor_lut;
+DROP TABLE contributing_factor_lut;
+ALTER TABLE contributing_factor_lut_temp RENAME TO contributing_factor_lut;
+
+CREATE TABLE cross_street_lut_temp AS
+SELECT DISTINCT * FROM cross_street_lut;
+DROP TABLE cross_street_lut;
+ALTER TABLE cross_street_lut_temp RENAME TO cross_street_lut;
+
+CREATE TABLE off_street_lut_temp AS
+SELECT DISTINCT * FROM off_street_lut;
+DROP TABLE off_street_lut;
+ALTER TABLE off_street_lut_temp RENAME TO off_street_lut;
+
+
+DELETE FROM collisions_df
+WHERE ctid NOT IN (
+    SELECT MIN(ctid)
+    FROM collisions_df
+    GROUP BY collision_id
+);
+
+DELETE FROM geometry_df
+WHERE ctid NOT IN (
+    SELECT MIN(ctid)
+    FROM geometry_df
+    GROUP BY "LocationID"
+);
+
+-- Add primary keys to tables
+ALTER TABLE borough_lut ADD PRIMARY KEY (borough_id);
+ALTER TABLE contributing_factor_lut ADD PRIMARY KEY (contributing_factor_id);
+ALTER TABLE cross_street_lut ADD PRIMARY KEY (cross_street_id);
+ALTER TABLE off_street_lut ADD PRIMARY KEY (off_street_id);
+ALTER TABLE collisions_df ADD PRIMARY KEY (collision_id);
+ALTER TABLE geometry_df ADD PRIMARY KEY ("LocationID");
+ALTER TABLE taxi_df ADD COLUMN trip_id SERIAL PRIMARY KEY;
+
+-- Alter column types
+ALTER TABLE collisions_df
+ALTER COLUMN borough_id TYPE integer USING borough_id::integer;
+
+ALTER TABLE collisions_df
+ALTER COLUMN contributing_factor_vehicle_1_id TYPE integer USING contributing_factor_vehicle_1_id::integer;
+
+ALTER TABLE collisions_df
+ALTER COLUMN cross_street_name_id TYPE integer USING cross_street_name_id::integer;
+
+ALTER TABLE collisions_df
+ALTER COLUMN off_street_name_id TYPE integer USING off_street_name_id::integer;
+
+-- Add foreign key constraints
+ALTER TABLE taxi_df
+ADD CONSTRAINT fk_taxi_pickup_location
+FOREIGN KEY (PULocationID)
+REFERENCES geometry_df (LocationID)
+NOT VALID;
+
+ALTER TABLE taxi_df
+ADD CONSTRAINT fk_taxi_dropoff_location
+FOREIGN KEY (DOLocationID)
+REFERENCES geometry_df (LocationID)
+NOT VALID;
+
+ALTER TABLE collisions_df
+ADD CONSTRAINT fk_collision_borough
+FOREIGN KEY (borough_id)
+REFERENCES borough_lut (borough_id);
+
+ALTER TABLE collisions_df
+ADD CONSTRAINT fk_collision_contributing_factor
+FOREIGN KEY (contributing_factor_id)
+REFERENCES contributing_factor_lut (contributing_factor_id);
+
+ALTER TABLE collisions_df
+ADD CONSTRAINT fk_collision_cross_street
+FOREIGN KEY (cross_street_id)
+REFERENCES cross_street_lut (cross_street_id);
+
+ALTER TABLE collisions_df
+ADD CONSTRAINT fk_collision_off_street
+FOREIGN KEY (off_street_id)
+REFERENCES off_street_lut (off_street_id);
+
+-- Rename tables
+ALTER TABLE collisions_df RENAME TO collision;
+ALTER TABLE taxi_df RENAME TO taxi;
+ALTER TABLE geometry_df RENAME TO geometry;
+
+-- Rename columns
+ALTER TABLE geometry RENAME COLUMN "LocationID" TO location_id;
+ALTER TABLE geometry RENAME COLUMN "Shape_Leng" TO shape_leng;
+ALTER TABLE geometry RENAME COLUMN "Shape_Area" TO shape_area;
+ALTER TABLE geometry RENAME COLUMN "OBJECTID" TO object_id;
+ALTER TABLE taxi RENAME COLUMN "VendorID" TO vendor_id;
+ALTER TABLE taxi RENAME COLUMN "RatecodeID" TO ratecode_id;
+ALTER TABLE taxi RENAME COLUMN "PULocationID" TO pu_location_id;
+ALTER TABLE taxi RENAME COLUMN "DOLocationID" TO do_location_id;
+ALTER TABLE taxi RENAME COLUMN "Airport_fee" TO airport_fee;
+
+-- Update borough names to proper case
+UPDATE borough_lut
+SET borough = INITCAP(borough);
+
+---- connect borough to geometry like make geometry have fk to borough_lut
+SELECT DISTINCT g.borough
+FROM geometry g
+LEFT JOIN borough_lut b ON g.borough = b.borough
+WHERE b.borough IS NULL;
+
+SELECT MAX(borough_id) FROM borough_lut;
+
+INSERT INTO borough_lut (borough_id, borough)
+VALUES (6, 'EWR');  -- use next available ID
+
+
+ALTER TABLE geometry ADD COLUMN borough_id INT;
+ALTER TABLE geometry
+ADD CONSTRAINT fk_geometry_borough
+FOREIGN KEY (borough_id) REFERENCES borough_lut(borough_id);
+
+
+ALTER TABLE geometry DROP COLUMN borough;
+
+
+
+
+-- Create indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_geometry_location_id ON geometry(location_id);
+CREATE INDEX IF NOT EXISTS idx_geometry_borough ON geometry(borough);
+CREATE INDEX IF NOT EXISTS idx_geometry_zone ON geometry(zone);
+
+CREATE INDEX IF NOT EXISTS idx_taxi_pu_location_id ON taxi(pu_location_id);
+CREATE INDEX IF NOT EXISTS idx_taxi_do_location_id ON taxi(do_location_id);
+CREATE INDEX IF NOT EXISTS idx_taxi_tpep_pickup_datetime ON taxi(tpep_pickup_datetime);
+CREATE INDEX IF NOT EXISTS idx_taxi_fare_amount ON taxi(fare_amount);
+CREATE INDEX IF NOT EXISTS idx_taxi_trip_distance ON taxi(trip_distance);
+CREATE INDEX IF NOT EXISTS idx_taxi_tip_amount ON taxi(tip_amount);
+
+CREATE INDEX IF NOT EXISTS idx_collision_borough_id ON collision(borough_id);
+CREATE INDEX IF NOT EXISTS idx_collision_crash_date ON collision(crash_date);
+CREATE INDEX IF NOT EXISTS idx_collision_crash_time ON collision(crash_time);
+CREATE INDEX IF NOT EXISTS idx_collision_number_of_persons_injured ON collision(number_of_persons_injured);
+
+CREATE INDEX IF NOT EXISTS idx_borough_lut_borough_id ON borough_lut(borough_id);
+CREATE INDEX IF NOT EXISTS idx_borough_lut_borough ON borough_lut(borough);
+
+-- Create composite indexes for common join patterns
+CREATE INDEX IF NOT EXISTS idx_taxi_pu_do_location ON taxi(pu_location_id, do_location_id);
+CREATE INDEX IF NOT EXISTS idx_collision_date_time ON collision(crash_date, crash_time);
+
+-- Create specialized indexes for complex queries
+CREATE INDEX IF NOT EXISTS idx_collision_borough_injuries ON collision(borough_id, number_of_persons_injured);
+CREATE INDEX IF NOT EXISTS idx_taxi_location_count ON taxi(pu_location_id, do_location_id);
+CREATE INDEX IF NOT EXISTS idx_taxi_fare_location ON taxi(fare_amount, pu_location_id);
+CREATE INDEX IF NOT EXISTS idx_taxi_tip_location ON taxi(tip_amount, pu_location_id);
+CREATE INDEX IF NOT EXISTS idx_collision_location_count ON collision(borough_id, crash_date);
+
+-- Create partial indexes for common filtering conditions
+CREATE INDEX IF NOT EXISTS idx_taxi_high_fare ON taxi(pu_location_id, fare_amount) 
+WHERE fare_amount > 50;
+
+CREATE INDEX IF NOT EXISTS idx_taxi_high_tip ON taxi(pu_location_id, tip_amount) 
+WHERE tip_amount > 10;
+
+CREATE INDEX IF NOT EXISTS idx_collision_recent ON collision(borough_id, crash_date) 
+WHERE crash_date > NOW() - INTERVAL '1 year';
+
+-- Create materialized views for complex, frequently accessed data
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_location_safety AS
+SELECT 
+  g.location_id, 
+  g.zone, 
+  g.borough,
+  COUNT(c.*) AS collision_count,
+  COALESCE(SUM(c.number_of_persons_injured), 0) AS total_injuries
+FROM geometry g
+LEFT JOIN collision c ON c.borough_id = (
+  SELECT borough_id FROM borough_lut WHERE borough = g.borough
+)
+GROUP BY g.location_id, g.zone, g.borough;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_location_safety_id ON mv_location_safety(location_id);
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_location_taxi_activity AS
+SELECT 
+  g.location_id,
+  g.zone,
+  g.borough,
+  COUNT(CASE WHEN t.pu_location_id = g.location_id THEN 1 END) AS pickup_count,
+  COUNT(CASE WHEN t.do_location_id = g.location_id THEN 1 END) AS dropoff_count,
+  AVG(t.fare_amount) AS avg_fare,
+  AVG(t.trip_distance) AS avg_distance,
+  AVG(t.tip_amount) AS avg_tip
+FROM geometry g
+LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
+GROUP BY g.location_id, g.zone, g.borough;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_location_taxi_activity_id ON mv_location_taxi_activity(location_id);
+
+-- Refresh materialized views
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_location_safety;
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_location_taxi_activity; 

@@ -1,106 +1,145 @@
-const connection = require('../db'); // Import the database connection
+const express = require('express');
+const router = express.Router();
+const connection = require('../db').connection;
 
+// Get total taxi pickups and drop-offs
+async function pickupsDropoffs(req, res) {
+  try {
+    const result = await connection.query(`
+     SELECT 
+        g.zone, 
+        g.location_id, 
+        b.borough,
+        COUNT(CASE WHEN t.pu_location_id = g.location_id THEN 1 END) AS pickup_count,
+        COUNT(CASE WHEN t.do_location_id = g.location_id THEN 1 END) AS dropoff_count
+      FROM geometry g
+      JOIN borough_lut b ON g.borough_id = b.borough_id
+      LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
+      GROUP BY g.zone, g.location_id, b.borough
+      ORDER BY pickup_count DESC, dropoff_count DESC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching pickup/dropoff data:', error);
+    res.status(500).json({ error: 'Failed to fetch pickup/dropoff data' });
+  }
+}
 
-// Function to retrieve total taxi pickups and drop-offs in a given location
-const pickupsDropoffs = async function (req, res) {
-    try {
-      const locationId = req.params.location_id;
-      const result = await connection.query(`
-        SELECT g.zone, g.borough,
-               COUNT(CASE WHEN t.pu_location_id = g.location_id THEN 1 END) AS total_pickups,
-               COUNT(CASE WHEN t.do_location_id = g.location_id THEN 1 END) AS total_dropoffs
+// Get number of collisions and injuries
+async function collisionsInjuries(req, res) {
+  try {
+    const result = await connection.query(`
+      SELECT 
+        g.zone, 
+        g.location_id, 
+        b.borough,
+        COUNT(c.*) AS collision_count,
+        COALESCE(SUM(c.number_of_persons_injured), 0) AS total_injuries
+      FROM geometry g
+      JOIN borough_lut b ON g.borough_id = b.borough_id
+      LEFT JOIN collision c ON c.borough_id = g.borough_id
+      GROUP BY g.zone, g.location_id, b.borough
+      ORDER BY collision_count DESC, total_injuries DESC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching collision/injury data:', error);
+    res.status(500).json({ error: 'Failed to fetch collision/injury data' });
+  }
+}
+
+// Get average fare and trip distance
+async function fareTripDistance(req, res) {
+  try {
+    const result = await connection.query(`
+      SELECT 
+        g.zone, 
+        g.location_id, 
+        b.borough,
+        AVG(t.fare_amount) AS avg_fare,
+        AVG(t.trip_distance) AS avg_distance
+      FROM geometry g
+      JOIN borough_lut b ON g.borough_id = b.borough_id
+      LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
+      GROUP BY g.zone, g.location_id, b.borough
+      ORDER BY avg_fare DESC, avg_distance DESC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching fare/distance data:', error);
+    res.status(500).json({ error: 'Failed to fetch fare/distance data' });
+  }
+}
+
+// Get safety and taxi availability ranking
+async function safetyRanking(req, res) {
+  try {
+    const result = await connection.query(`
+      WITH safety_metrics AS (
+        SELECT 
+          g.zone, 
+          g.location_id, 
+          b.borough,
+          COUNT(c.*) AS collision_count,
+          COALESCE(SUM(c.number_of_persons_injured), 0) AS total_injuries,
+          COUNT(CASE WHEN t.pu_location_id = g.location_id THEN 1 END) AS pickup_count
         FROM geometry g
+        JOIN borough_lut b ON g.borough_id = b.borough_id
+        LEFT JOIN collision c ON c.borough_id = g.borough_id
         LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
-        WHERE g.location_id = $1
-        GROUP BY g.borough
-      `, [locationId]);
-      res.json(result.rows[0]);
-    } catch (err) {
-      console.error('Error retrieving pickups and drop-offs:', err);
-      res.status(500).send('Error retrieving pickups and drop-offs');
-    }
-  };
-  
-// Function to retrieve the number of collisions and injuries recorded in the area
-const collisionsInjuries = async function (req, res) {
-    try {
-      const locationId = req.params.location_id;
-      const result = await connection.query(`
-        SELECT g.zone, g.borough,
-               COUNT(*) AS collisions,
-               SUM(c.number_of_persons_injured) AS total_injuries
-        FROM collisions c
-        JOIN borough_lut b ON c.borough_id = b.borough_id
-        JOIN geometry g ON b.borough = g.borough
-        WHERE g.location_id = $1
-        GROUP BY g.borough
-      `, [locationId]);
-      res.json(result.rows[0]);
-    } catch (err) {
-      console.error('Error retrieving collisions and injuries:', err);
-      res.status(500).send('Error retrieving collisions and injuries');
-    }
-  };
+        GROUP BY g.zone, g.location_id, b.borough
+      )
+      SELECT 
+        zone, 
+        location_id, 
+        borough,
+        collision_count,
+        total_injuries,
+        pickup_count,
+        RANK() OVER (ORDER BY collision_count DESC, total_injuries DESC) AS safety_rank,
+        RANK() OVER (ORDER BY pickup_count DESC) AS availability_rank
+      FROM safety_metrics
+      ORDER BY safety_rank, availability_rank
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching safety ranking data:', error);
+    res.status(500).json({ error: 'Failed to fetch safety ranking data' });
+  }
+}
 
-// Function to retrieve the average fare and trip distance for rides in the location
-const fareTripDistance = async function (req, res) {
-    try {
-      const locationId = req.params.location_id;
-      const result = await connection.query(`
-        SELECT g.zone, g.borough,
-               AVG(t.fare_amount) AS average_fare,
-               AVG(t.trip_distance) AS average_distance
-        FROM taxi t
-        JOIN geometry g ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
-        WHERE g.location_id = $1
-        GROUP BY g.zone, g.borough
-      `, [locationId]);
-      res.json(result.rows[0]);
-    } catch (err) {
-      console.error('Error retrieving fare and trip distance:', err);
-      res.status(500).send('Error retrieving fare and trip distance');
-    }
-  };
+// Get valid location IDs (zones with both taxi activity and collisions)
+async function validLocations(req, res) {
+  try {
+    const result = await connection.query(`
+      WITH collision_boroughs AS (
+        SELECT DISTINCT borough_id
+        FROM collision
+      ),
+      taxi_zones AS (
+        SELECT DISTINCT pu_location_id AS location_id FROM taxi
+        UNION
+        SELECT DISTINCT do_location_id FROM taxi
+      )
+      SELECT DISTINCT g.zone, g.location_id, b.borough
+      FROM geometry g
+      JOIN borough_lut b ON g.borough_id = b.borough_id
+      JOIN collision_boroughs cb ON g.borough_id = cb.borough_id
+      JOIN taxi_zones tz ON g.location_id = tz.location_id
+      ORDER BY g.zone
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching valid location IDs:', error);
+    res.status(500).json({ error: 'Failed to fetch valid location IDs' });
+  }
+}
 
-// Function to retrieve the ranking of the area in terms of safety and taxi availability
-const safetyRanking = async function (req, res) {
-    try {
-      const locationId = req.params.location_id;
-      const result = await connection.query(`
-        WITH safety AS (
-          SELECT g.location_id, g.zone, g.borough,
-                 RANK() OVER (ORDER BY COUNT(*) + COALESCE(SUM(c.number_of_persons_injured), 0)) AS safety_rank
-          FROM collisions c
-          JOIN borough_lut b ON c.borough_id = b.borough_id
-          JOIN geometry g ON g.borough = b.borough
-          GROUP BY g.location_id, g.zone, g.borough
-        ),
-        taxi_activity AS (
-          SELECT g.location_id,
-                 RANK() OVER (ORDER BY COUNT(*) DESC) AS taxi_availability_rank
-          FROM taxi t
-          JOIN geometry g ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
-          GROUP BY g.location_id
-        )
-        SELECT s.zone, s.borough,
-               s.safety_rank,
-               t.taxi_availability_rank
-        FROM safety s
-        JOIN taxi_activity t ON s.location_id = t.location_id
-        WHERE s.location_id = $1
-      `, [locationId]);
-      res.json(result.rows[0]);
-    } catch (err) {
-      console.error('Error retrieving safety ranking:', err);
-      res.status(500).send('Error retrieving safety ranking');
-    }
-  };
+// Define routes
+router.get('/pickups-dropoffs', pickupsDropoffs);
+router.get('/collisions-injuries', collisionsInjuries);
+router.get('/fare-trip-distance', fareTripDistance);
+router.get('/safety-ranking', safetyRanking);
+router.get('/valid-locations', validLocations);
 
-  
-
-module.exports = {
-  pickupsDropoffs,
-  collisionsInjuries,
-  fareTripDistance,
-  safetyRanking,
-};
+module.exports = router;

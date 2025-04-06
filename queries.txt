@@ -1,0 +1,82 @@
+-- Query 1: Get total taxi pickups and drop-offs
+SELECT 
+  g.zone, 
+  g.location_id, 
+  b.borough,
+  COUNT(CASE WHEN t.pu_location_id = g.location_id THEN 1 END) AS pickup_count,
+  COUNT(CASE WHEN t.do_location_id = g.location_id THEN 1 END) AS dropoff_count
+FROM geometry g
+JOIN borough_lut b ON g.borough_id = b.borough_id
+LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
+GROUP BY g.zone, g.location_id, b.borough
+ORDER BY pickup_count DESC, dropoff_count DESC;
+
+-- Query 2: Get number of collisions and injuries
+SELECT 
+  g.zone, 
+  g.location_id, 
+  b.borough,
+  COUNT(c.*) AS collision_count,
+  COALESCE(SUM(c.number_of_persons_injured), 0) AS total_injuries
+FROM geometry g
+JOIN borough_lut b ON g.borough_id = b.borough_id
+LEFT JOIN collision c ON c.borough_id = g.borough_id
+GROUP BY g.zone, g.location_id, b.borough
+ORDER BY collision_count DESC, total_injuries DESC;
+
+-- Query 3: Get average fare and trip distance
+SELECT 
+  g.zone, 
+  g.location_id, 
+  b.borough,
+  AVG(t.fare_amount) AS avg_fare,
+  AVG(t.trip_distance) AS avg_distance
+FROM geometry g
+JOIN borough_lut b ON g.borough_id = b.borough_id
+LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
+GROUP BY g.zone, g.location_id, b.borough
+ORDER BY avg_fare DESC, avg_distance DESC;
+
+-- Query 4: Get safety and taxi availability ranking
+WITH safety_metrics AS (
+  SELECT 
+    g.zone, 
+    g.location_id, 
+    b.borough,
+    COUNT(c.*) AS collision_count,
+    COALESCE(SUM(c.number_of_persons_injured), 0) AS total_injuries,
+    COUNT(CASE WHEN t.pu_location_id = g.location_id THEN 1 END) AS pickup_count
+  FROM geometry g
+  JOIN borough_lut b ON g.borough_id = b.borough_id
+  LEFT JOIN collision c ON c.borough_id = g.borough_id
+  LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
+  GROUP BY g.zone, g.location_id, b.borough
+)
+SELECT 
+  zone, 
+  location_id, 
+  borough,
+  collision_count,
+  total_injuries,
+  pickup_count,
+  RANK() OVER (ORDER BY collision_count DESC, total_injuries DESC) AS safety_rank,
+  RANK() OVER (ORDER BY pickup_count DESC) AS availability_rank
+FROM safety_metrics
+ORDER BY safety_rank, availability_rank;
+
+-- Query 5: Get valid location IDs (zones with both taxi activity and collisions)
+WITH collision_boroughs AS (
+  SELECT DISTINCT borough_id
+  FROM collision
+),
+taxi_zones AS (
+  SELECT DISTINCT pu_location_id AS location_id FROM taxi
+  UNION
+  SELECT DISTINCT do_location_id FROM taxi
+)
+SELECT DISTINCT g.zone, g.location_id, b.borough
+FROM geometry g
+JOIN borough_lut b ON g.borough_id = b.borough_id
+JOIN collision_boroughs cb ON g.borough_id = cb.borough_id
+JOIN taxi_zones tz ON g.location_id = tz.location_id
+ORDER BY g.zone; 
