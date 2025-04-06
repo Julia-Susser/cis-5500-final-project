@@ -60,17 +60,36 @@ ALTER COLUMN cross_street_name_id TYPE integer USING cross_street_name_id::integ
 ALTER TABLE collisions_df
 ALTER COLUMN off_street_name_id TYPE integer USING off_street_name_id::integer;
 
+
+-- Rename tables
+ALTER TABLE collisions_df RENAME TO collision;
+ALTER TABLE taxi_df RENAME TO taxi;
+ALTER TABLE geometry_df RENAME TO nyc_geometry;
+
+-- Rename columns
+ALTER TABLE nyc_geometry RENAME COLUMN "LocationID" TO location_id;
+ALTER TABLE nyc_geometry RENAME COLUMN "Shape_Leng" TO shape_leng;
+ALTER TABLE nyc_geometry RENAME COLUMN "Shape_Area" TO shape_area;
+ALTER TABLE nyc_geometry RENAME COLUMN "OBJECTID" TO object_id;
+
+ALTER TABLE taxi RENAME COLUMN "VendorID" TO vendor_id;
+ALTER TABLE taxi RENAME COLUMN "RatecodeID" TO ratecode_id;
+ALTER TABLE taxi RENAME COLUMN "PULocationID" TO pu_location_id;
+ALTER TABLE taxi RENAME COLUMN "DOLocationID" TO do_location_id;
+ALTER TABLE taxi RENAME COLUMN "Airport_fee" TO airport_fee;
+
+
 -- Add foreign key constraints
-ALTER TABLE taxi_df
+ALTER TABLE taxi
 ADD CONSTRAINT fk_taxi_pickup_location
-FOREIGN KEY (PULocationID)
-REFERENCES nyc_geometry_df (LocationID)
+FOREIGN KEY (pu_location_id)
+REFERENCES nyc_geometry (location_id)
 NOT VALID;
 
-ALTER TABLE taxi_df
+ALTER TABLE taxi
 ADD CONSTRAINT fk_taxi_dropoff_location
-FOREIGN KEY (DOLocationID)
-REFERENCES nyc_geometry_df (LocationID)
+FOREIGN KEY (do_location_id)
+REFERENCES nyc_geometry (location_id)
 NOT VALID;
 
 ALTER TABLE collisions_df
@@ -92,22 +111,6 @@ ALTER TABLE collisions_df
 ADD CONSTRAINT fk_collision_off_street
 FOREIGN KEY (off_street_id)
 REFERENCES off_street_lut (off_street_id);
-
--- Rename tables
-ALTER TABLE collisions_df RENAME TO collision;
-ALTER TABLE taxi_df RENAME TO taxi;
-ALTER TABLE nyc_geometry_df RENAME TO nyc_geometry;
-
--- Rename columns
-ALTER TABLE nyc_geometry RENAME COLUMN "LocationID" TO location_id;
-ALTER TABLE nyc_geometry RENAME COLUMN "Shape_Leng" TO shape_leng;
-ALTER TABLE nyc_geometry RENAME COLUMN "Shape_Area" TO shape_area;
-ALTER TABLE nyc_geometry RENAME COLUMN "OBJECTID" TO object_id;
-ALTER TABLE taxi RENAME COLUMN "VendorID" TO vendor_id;
-ALTER TABLE taxi RENAME COLUMN "RatecodeID" TO ratecode_id;
-ALTER TABLE taxi RENAME COLUMN "PULocationID" TO pu_location_id;
-ALTER TABLE taxi RENAME COLUMN "DOLocationID" TO do_location_id;
-ALTER TABLE taxi RENAME COLUMN "Airport_fee" TO airport_fee;
 
 -- Update borough names to proper case
 UPDATE borough_lut
