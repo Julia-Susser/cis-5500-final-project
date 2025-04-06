@@ -1,0 +1,38 @@
+C = Complex
+NC = Not Complex
+
+-- Query 1 (NC)
+This query calculates total taxi pickup/drop-off counts per zone using aggregation by location_id and multi-table joins by borough_id and location_id. 
+
+-- Query 2 (NC)
+This query counts collisions and sums injuries per zone through table joins and aggregation.  
+
+-- Query 3 (NC)
+This query calculates average fare and trip distance per zone through table joins and aggregation.
+
+-- Query 4 (C)
+This query ranks zones by both safety metrics and taxi availability using CTEs, window functions, and multiple aggregation layers. Primary outputs are safety_rank and availability_rank.
+
+-- Query 5 (C)
+This query identifies zones with both taxi activity and collision data using CTEs, UNION, and multiple table joins to create a filtered list of valid locations.
+
+-- Query 6 (NC)
+This query groups collisions into seasonal buckets using CASE statements on the crash_date feature and helps determine if weather differences between seasons create variance in total collision counts.   
+
+-- Query 7 (C)
+This query calculates how many collisions occur per 1,000 taxi rides in a specific neighborhood during a given time period. It uses separate counting techniques and handles potential division by zero to ensure reliable results.
+
+-- Query 8 (C)
+This query identifies patterns in accident frequency by finding months when collision numbers spike in busy taxi pickup areas. It first isolates high-traffic pickup zones, then groups accidents by month to identify periods where accidents exceed a significant threshold.
+
+-- Query 9 (C)
+This query identifies specific date-hour combinations when multiple collisions occurred. By breaking down crash timestamps and counting occurrences, it helps determine whether certain hours consistently experience collision clusters.
+
+-- Query 10 (C)
+This query analyzes fare pricing patterns across the city by identifying neighborhoods where passengers typically pay more than the citywide average. It provides data for understanding geographic pricing variations and potentially identifying premium service areas.
+
+-- Query 11 (C)
+This query examines travel distance patterns by finding zones associated with longer-than-average trips. The results may indicate outlying neighborhoods or areas that generate longer journeys compared to typical city trips.
+
+-- Query 12 (C)
+This query analyzes the pattern of taxi demand by identifying the busiest hours for each neighborhood. By examining pickup times and organizing results by zone and hour, it shows when taxi services are most utilized in different parts of the city.
