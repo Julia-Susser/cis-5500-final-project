@@ -53,7 +53,7 @@ Stores raw input files for data ingestion.
 
 ---
 
-### Data Processing (`src/`)
+### Data Processing (`data/src/`)
 Scripts and notebooks for cleaning and transforming raw data.
 
 - **`processing.ipynb`**: Jupyter Notebook for data cleaning and transformation.
