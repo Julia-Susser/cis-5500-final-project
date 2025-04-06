@@ -45,7 +45,7 @@ ALTER TABLE cross_street_lut ADD PRIMARY KEY (cross_street_id);
 ALTER TABLE off_street_lut ADD PRIMARY KEY (off_street_id);
 ALTER TABLE collisions_df ADD PRIMARY KEY (collision_id);
 ALTER TABLE nyc_geometry_df ADD PRIMARY KEY ("LocationID");
-ALTER TABLE taxi_df ADD COLUMN trip_id SERIAL PRIMARY KEY;
+ALTER TABLE taxi ADD COLUMN trip_id SERIAL PRIMARY KEY;
 
 -- Alter column types
 ALTER TABLE collisions_df
@@ -92,22 +92,22 @@ FOREIGN KEY (do_location_id)
 REFERENCES nyc_geometry (location_id)
 NOT VALID;
 
-ALTER TABLE collisions_df
+ALTER TABLE collision
 ADD CONSTRAINT fk_collision_borough
 FOREIGN KEY (borough_id)
 REFERENCES borough_lut (borough_id);
 
-ALTER TABLE collisions_df
+ALTER TABLE collision
 ADD CONSTRAINT fk_collision_contributing_factor
 FOREIGN KEY (contributing_factor_id)
 REFERENCES contributing_factor_lut (contributing_factor_id);
 
-ALTER TABLE collisions_df
+ALTER TABLE collision
 ADD CONSTRAINT fk_collision_cross_street
 FOREIGN KEY (cross_street_id)
 REFERENCES cross_street_lut (cross_street_id);
 
-ALTER TABLE collisions_df
+ALTER TABLE collision
 ADD CONSTRAINT fk_collision_off_street
 FOREIGN KEY (off_street_id)
 REFERENCES off_street_lut (off_street_id);
@@ -135,8 +135,6 @@ FOREIGN KEY (borough_id) REFERENCES borough_lut(borough_id);
 
 
 ALTER TABLE nyc_geometry DROP COLUMN borough;
-
-
 
 
 -- Create indexes for better query performance
