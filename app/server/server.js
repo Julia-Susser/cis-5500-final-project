@@ -25,8 +25,8 @@ app.get('/location/:location_id/collisions_injuries', routes.collisionsInjuries)
 app.get('/location/:location_id/fare_trip_distance', routes.fareTripDistance);
 
 // // Query 4: Retrieves the ranking of the area in terms of safety and taxi availability.
-// // Takes: `location_id` as a URL parameter.
-// app.get('/location/:location_id/safety_ranking', routes.safetyRanking);
+// Takes: `location_id` as a URL parameter.
+app.get('/location/:location_id/safety_ranking', routes.safetyRanking);
 
 // Query 5: Retrieves zones with both taxi activity and collisions in a date range.
 // Takes: No parameters.

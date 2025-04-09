@@ -42,8 +42,9 @@ export default function NavBar() {
       <Container maxWidth='xl'>
         <Toolbar disableGutters>
           <NavText href='/' text='NYC-Taxi-Data-App' isMain />
-          <NavText href='/albums' text='ALBUMS' />
-          <NavText href='/songs' text='SONGS' />
+          <NavText href='/' text='Map' />
+          <NavText href='/time' text='Time' />
+          <NavText href='/area' text='Area' />
         </Toolbar>
       </Container>
     </AppBar>
