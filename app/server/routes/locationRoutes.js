@@ -97,6 +97,18 @@ const safetyRanking = async function (req, res) {
   };
 
 
+const getNYCGeometry = async function (req, res) {
+    try {
+        const result = await connection.query(`
+            SELECT location_id, zone, borough, latitude, longitude
+            FROM nyc_geometry
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error retrieving NYC geometry data:', err);
+        res.status(500).send('Error retrieving NYC geometry data');
+    }
+};
  
 // Add the new handler to the module exports
 module.exports = {
@@ -104,5 +116,6 @@ module.exports = {
   collisionsInjuries,
   fareTripDistance,
   safetyRanking,
+  getNYCGeometry
 };
   

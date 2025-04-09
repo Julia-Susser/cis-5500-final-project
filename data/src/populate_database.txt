@@ -137,6 +137,27 @@ FOREIGN KEY (borough_id) REFERENCES borough_lut(borough_id);
 ALTER TABLE nyc_geometry DROP COLUMN borough;
 
 
+
+-- SHP checking if point is inside longitude and latitude
+
+ALTER TABLE geometry_shp
+ALTER COLUMN geometry_hex
+TYPE geometry(MULTIPOLYGON, 2263)
+USING ST_SetSRID(geometry, 2263);
+
+SELECT zone
+FROM nyc_geometry
+WHERE ST_Contains(
+  geometry,
+  ST_Transform(
+    ST_SetSRID(ST_MakePoint(-73.935242, 40.730610), 4326),
+    2263
+  )
+);
+
+
+ST_Contains(polygon, transformed_point)
+
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_geometry_location_id ON nyc_geometry(location_id);
 CREATE INDEX IF NOT EXISTS idx_geometry_borough ON nyc_geometry(borough);

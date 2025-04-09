@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { Container, Divider, Link } from '@mui/material';
 import { NavLink } from 'react-router-dom';
 
-import LazyTable from '../components/LazyTable';
-import SongCard from '../components/SongCard';
-const config = require('../config.json');
+import LazyTable from '../../components/LazyTable';
+import SongCard from '../../components/SongCard';
+const config = require('../../config.json');
 
 export default function HomePage() {
   // We use the setState hook to persist information across renders (such as the result of our API calls)
