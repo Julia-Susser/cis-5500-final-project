@@ -1,21 +1,55 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CssBaseline, ThemeProvider } from '@mui/material'
-import { indigo, amber } from '@mui/material/colors'
+import { teal, orange } from '@mui/material/colors'
 import { createTheme } from "@mui/material/styles";
 
 import NavBar from './components/NavBar';
-import HomePage from './pages/HomePage';
-import AlbumsPage from './pages/AlbumsPage';
-import SongsPage from './pages/SongsPage';
-import AlbumInfoPage from './pages/AlbumInfoPage'
+import LocationInfoPage from './pages/LocationInfoPage';
 
 // createTheme enables you to customize the look and feel of your app past the default
-// in this case, we only change the color scheme
+// in this case, we customize the color scheme, typography, and component styles
 export const theme = createTheme({
   palette: {
-    primary: indigo,
-    secondary: amber,
+    primary: {
+      main: teal[700],
+    },
+    secondary: {
+      main: orange[500],
+    },
+    background: {
+      default: '#f5f5f5',
+    }
   },
+  typography: {
+    fontFamily: "'Segoe UI', 'Roboto', 'Arial', sans-serif",
+    h1: {
+      fontSize: '2.5rem',
+      fontWeight: 600,
+      color: teal[900],
+    },
+    h2: {
+      fontSize: '2rem',
+      fontWeight: 500,
+      color: teal[800],
+    }
+  },
+  components: {
+    MuiTableHead: {
+      styleOverrides: {
+        root: {
+          backgroundColor: teal[50],
+        }
+      }
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        head: {
+          fontWeight: 600,
+          color: teal[900],
+        }
+      }
+    }
+  }
 });
 
 // App is the root component of our application and as children contain all our pages
@@ -29,10 +63,11 @@ export default function App() {
       <BrowserRouter>
         <NavBar />
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/albums" element={<AlbumsPage />} />
+          <Route path="/" element={<LocationInfoPage />} />
+          <Route path="/location/:location_id" element={<LocationInfoPage />} />
+          {/* <Route path="/albums" element={<AlbumsPage />} />
           <Route path="/albums/:album_id" element={<AlbumInfoPage />} />
-          <Route path="/songs" element={<SongsPage />} />
+          <Route path="/songs" element={<SongsPage />} /> */}
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
