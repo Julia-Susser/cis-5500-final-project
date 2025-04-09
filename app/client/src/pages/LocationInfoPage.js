@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Link, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
-import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import React from 'react';
 import 'leaflet/dist/leaflet.css';
 
 const config = require('../config.json');
@@ -103,6 +105,24 @@ export default function LocationInfoPage() {
       borough: item.borough
     }
   }));
+
+  function FitBounds({ features }) {
+    const map = useMap();
+  
+    React.useEffect(() => {
+      if (features.length > 0) {
+        const allBounds = features.map((feature) =>
+          L.geoJSON(feature).getBounds()
+        );
+        const combinedBounds = allBounds.reduce((acc, bounds) =>
+          acc.extend(bounds)
+        );
+        map.fitBounds(combinedBounds);
+      }
+    }, [features, map]);
+  
+    return null;
+  }
   
   return (
     <Container sx={{ 
@@ -121,7 +141,7 @@ export default function LocationInfoPage() {
       }
     }}>
       <Stack direction="column" spacing={4}>
-        <h1>Valid Locations</h1>
+        <h1>Location Data for {locationId}</h1>
         {locationMetrics.map((metric, index) => (
           <div key={index}>
             <h2>{metric.title}</h2>
@@ -131,31 +151,43 @@ export default function LocationInfoPage() {
       </Stack>
 
       <MapContainer
-        center={[40.7128, -74.0060]}
-        zoom={11}
-        style={{ height: '100vh', width: '100%', background: '#f0f0f0' }}
-        zoomControl={true}
-        scrollWheelZoom={true}
-      >
-        {features.map((feature, idx) => (
-          <GeoJSON
-            key={idx}
-            data={feature}
-            style={{
-              color: '#2c7bb6',
-              weight: 1.5,
-              fillOpacity: 0.4,
-              fillColor: '#abd9e9',
-            }}
-            onEachFeature={(feature, layer) => {
-              layer.on({
-                click: () =>
-                  alert(`Zone: ${feature.properties.zone}\nBorough: ${feature.properties.borough}`),
-              });
-            }}
-          />
-        ))}
-      </MapContainer>
+      center={[40.7128, -74.0060]} // fallback center
+      zoom={11}
+      style={{ height: '100vh', width: '100%', background: '#f0f0f0' }}
+      zoomControl={true}
+      scrollWheelZoom={true}
+    >
+      <FitBounds features={features} />
+      {features.map((feature, idx) => (
+        <GeoJSON
+          key={idx}
+          data={feature}
+          style={{
+            color: '#2c7bb6',
+            weight: 1.5,
+            fillOpacity: 0.4,
+            fillColor: '#abd9e9',
+          }}
+          onEachFeature={(feature, layer) => {
+            layer.on({
+              click: () => {
+                // Set the locationId when a feature is clicked
+                const selectedLocationId = geometryData.find(
+                  (item) => item.zone === feature.properties.zone && item.borough === feature.properties.borough
+                )?.location_id;
+    
+                if (selectedLocationId) {
+                  setLocationId(selectedLocationId);
+                  alert(`Location ID set to: ${selectedLocationId}`);
+                } else {
+                  alert('Location ID not found for this feature.');
+                }
+              },
+            });
+          }}
+        />
+      ))}
+    </MapContainer>
 
 
       <TableContainer>
