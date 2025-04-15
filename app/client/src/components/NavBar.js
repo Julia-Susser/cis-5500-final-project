@@ -43,7 +43,7 @@ export default function NavBar() {
         <Toolbar disableGutters>
           <NavText href='/' text='NYC-Taxi-Data-App' isMain />
           <NavText href='/' text='Map' />
-          <NavText href='/time' text='Time' />
+          <NavText href='/weekly-collisions' text='Safety' />
           <NavText href='/area' text='Area' />
         </Toolbar>
       </Container>
