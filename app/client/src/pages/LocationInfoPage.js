@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Container, Link, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Container, experimentalStyled, Link, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import React from 'react';
@@ -17,24 +17,23 @@ export default function LocationInfoPage() {
   const [locationData, setLocationData] = useState([]);
   const [locationMetrics, setLocationMetrics] = useState([]);
   const [geometryData, setGeometryData] = useState([]);
+  const [geometryMap, setGeometryMap] = useState([]);
 
   useEffect(() => {
     function fetchData() {
       fetch(`http://${config.server_host}:${config.server_port}/location/nyc_geometry`)
         .then(res => res.json())
         .then(data => setGeometryData(data));
+
+        fetch(`http://${config.server_host}:${config.server_port}/location/nyc_geometry_map`)
+        .then(res => res.json())
+        .then(data => setGeometryMap(data.features));
   
       fetch(`http://${config.server_host}:${config.server_port}/location/valid_locations`)
         .then(res => res.json())
         .then(data => setLocationData(data));
   
       if (locationId) {
-        const selectedLocation = geometryData.find((item) => item.location_id === locationId);
-        if (selectedLocation) {
-          setZone(selectedLocation.zone);
-          setBorough(selectedLocation.borough);
-        }
-  
         fetch(`http://${config.server_host}:${config.server_port}/location/${locationId}/pickups_dropoffs`)
           .then(res => res.json())
           .then(pickupsJson =>
@@ -64,7 +63,9 @@ export default function LocationInfoPage() {
               average_trip_distance: fareJson.average_distance
             }))
           );
+
   
+        console.log(`http://${config.server_host}:${config.server_port}/location/${locationId}/safety_ranking`);
         fetch(`http://${config.server_host}:${config.server_port}/location/${locationId}/safety_ranking`)
           .then(res => res.json())
           .then(safetyJson =>
@@ -79,70 +80,19 @@ export default function LocationInfoPage() {
   
     fetchData();
   }, [locationId]);
+
+  useEffect(() => {
+    console.log('locationMetrics updated:', locationMetrics);
+  }, [locationMetrics]);
   
 
-  function parseWKTPolygon(wkt) {
-    if (wkt.startsWith('POLYGON')) {
-      const coords = wkt
-        .replace("POLYGON ((", "")
-        .replace("))", "")
-        .split(", ")
-        .map(pair => pair.split(" ").map(Number))
-        .map(([x, y]) => {
-          const lon = x * 0.00001 - 74.1;
-          const lat = y * 0.00001 + 40.5;
-          return [lon, lat];
-        });
   
-      return {
-        type: "Polygon",
-        coordinates: [coords]
-      };
-    }
-  
-    if (wkt.startsWith('MULTIPOLYGON')) {
-      const polyStrings = wkt
-        .replace("MULTIPOLYGON (((", "")
-        .replace(")))", "")
-        .split(")), ((");
-  
-      const polygons = polyStrings.map(polygon => {
-        const coords = polygon
-          .split(", ")
-          .map(pair => pair.split(" ").map(Number))
-          .map(([x, y]) => {
-            const lon = x * 0.00001 - 74.1;
-            const lat = y * 0.00001 + 40.5;
-            return [lon, lat];
-          });
-  
-        return [coords];
-      });
-  
-      return {
-        type: "MultiPolygon",
-        coordinates: polygons
-      };
-    }
-  
-    return null; // unknown format
-  }
 
-  const features = geometryData.map((item) => ({
-    type: "Feature",
-    geometry: parseWKTPolygon(item.geometry_shp),
-    properties: {
-      zone: item.zone,
-      borough: item.borough
-    }
-  }));
-
-  function FitBounds({ features }) {
+  function FitBounds({ geometryMap }) {
     const map = useMap();
-  
     React.useEffect(() => {
-      if (features.length > 0) {
-        const allBounds = features.map((feature) =>
+      if (geometryMap.length > 0) {
+        const allBounds = geometryMap.map((feature) =>
           L.geoJSON(feature).getBounds()
         );
         const combinedBounds = allBounds.reduce((acc, bounds) =>
@@ -150,7 +100,7 @@ export default function LocationInfoPage() {
         );
         map.fitBounds(combinedBounds);
       }
-    }, [features, map]);
+    }, [geometryMap, map]);
   
     return null;
   }
@@ -180,8 +130,8 @@ export default function LocationInfoPage() {
       zoomControl={true}
       scrollWheelZoom={true}
     >
-      <FitBounds features={features} />
-      {features.map((feature, idx) => (
+      <FitBounds features={geometryMap} />
+      {geometryMap.map((feature, idx) => (
         <GeoJSON
           key={idx}
           data={feature}
@@ -195,15 +145,27 @@ export default function LocationInfoPage() {
             layer.on({
               click: () => {
                 // Set the locationId when a feature is clicked
-                const selectedLocationId = geometryData.find(
+                const selectedLocation = geometryData.find(
                   (item) => item.zone === feature.properties.zone && item.borough === feature.properties.borough
-                )?.location_id;
+                );
     
-                if (selectedLocationId) {
-                  setLocationId(selectedLocationId);
-                  alert(`Location ID set to: ${selectedLocationId}`);
+                if (selectedLocation) {
+                    setLocationId(selectedLocation.location_id);
+                    setBorough(selectedLocation.borough);
+                    setZone(selectedLocation.zone);
+                    setLocationMetrics({
+                      "total_pickups": 0,
+                      "total_dropoffs": 0,
+                      "collisions": 0,
+                      "total_injuries": 0,
+                      "average_fare": 0,
+                      "average_trip_distance": 0,
+                      "safety_ranking": 0,
+                      "taxi_availability_rank": 0
+                    })
+                  alert(`Zone: ${selectedLocation.zone} Borough: ${selectedLocation.borough}`);
                 } else {
-                  alert('Location ID not found for this feature.');
+                  alert('No Data for selected location');
                 }
               },
             });

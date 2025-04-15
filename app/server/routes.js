@@ -2,7 +2,7 @@ const { Pool, types } = require('pg');
 const config = require('./config.json')
 
 // Import route handlers
-const { pickupsDropoffs, collisionsInjuries, fareTripDistance, safetyRanking, validLocations, getNYCGeometry } = require('./routes/locationRoutes');
+const { pickupsDropoffs, collisionsInjuries, fareTripDistance, safetyRanking, validLocations, getNYCGeometry, getNYCGeometryMap } = require('./routes/locationRoutes');
 const { peakHoursAnalysis, tipAnalysis, collisionHotspots, proximityAnalysis, collisionsOnStreet } = require('./routes/areaRoutes');
 const { safetyBySeason, collisionRate, sameCollisionDateHours } = require('./routes/timeRoutes');
 
@@ -14,7 +14,7 @@ module.exports = {
   safetyRanking,
   validLocations,
   getNYCGeometry,
-  
+  getNYCGeometryMap,
   // Time routes (Queries 6-8)
   safetyBySeason,
   collisionRate,

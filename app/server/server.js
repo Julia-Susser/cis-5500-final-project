@@ -36,6 +36,8 @@ app.get('/location/valid_locations', routes.validLocations);
 // Takes: No parameters.
 app.get('/location/nyc_geometry', routes.getNYCGeometry);
 
+app.get('/location/nyc_geometry_map', routes.getNYCGeometryMap);
+
 // =======================
 // Time-Based Safety & Collision Routes (Queries 6–9)
 // =======================

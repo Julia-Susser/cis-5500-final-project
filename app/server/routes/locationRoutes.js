@@ -140,11 +140,87 @@ const getNYCGeometry = async function (req, res) {
             FROM nyc_geometry g
             JOIN borough_lut b ON g.borough_id = b.borough_id
         `);
+        console.log("sending geometry")
         res.json(result.rows);
     } catch (err) {
         console.error('Error retrieving NYC geometry data:', err);
         res.status(500).send('Error retrieving NYC geometry data');
     }
+};
+
+
+function parseWKTPolygon(wkt) {
+  if (wkt.startsWith('POLYGON')) {
+    const coords = wkt
+      .replace("POLYGON ((", "")
+      .replace("))", "")
+      .split(", ")
+      .map(pair => pair.split(" ").map(Number))
+      .map(([x, y]) => {
+        const lon = x * 0.00001 - 74.1;
+        const lat = y * 0.00001 + 40.5;
+        return [lon, lat];
+      });
+
+    return {
+      type: "Polygon",
+      coordinates: [coords]
+    };
+  }
+
+  if (wkt.startsWith('MULTIPOLYGON')) {
+    const polyStrings = wkt
+      .replace("MULTIPOLYGON (((", "")
+      .replace(")))", "")
+      .split(")), ((");
+
+    const polygons = polyStrings.map(polygon => {
+      const coords = polygon
+        .split(", ")
+        .map(pair => pair.split(" ").map(Number))
+        .map(([x, y]) => {
+          const lon = x * 0.00001 - 74.1;
+          const lat = y * 0.00001 + 40.5;
+          return [lon, lat];
+        });
+
+      return [coords];
+    });
+
+    return {
+      type: "MultiPolygon",
+      coordinates: polygons
+    };
+  }
+
+  return null;
+}
+
+const getNYCGeometryMap = async function (req, res) {
+  try {
+    const result = await connection.query(`
+      SELECT g.location_id, g.zone, b.borough, g.geometry_shp
+      FROM nyc_geometry g
+      JOIN borough_lut b ON g.borough_id = b.borough_id
+    `);
+
+    const features = result.rows.map((item) => ({
+      type: "Feature",
+      geometry: parseWKTPolygon(item.geometry_shp),
+      properties: {
+        zone: item.zone,
+        borough: item.borough
+      }
+    }));
+
+    res.json({
+      type: "FeatureCollection",
+      features
+    });
+  } catch (err) {
+    console.error('Error retrieving NYC geometry map data:', err);
+    res.status(500).send('Error retrieving NYC geometry map data');
+  }
 };
 
 
@@ -155,6 +231,7 @@ module.exports = {
   fareTripDistance,
   validLocations,
   safetyRanking,
-  getNYCGeometry
+  getNYCGeometry,
+  getNYCGeometryMap
 };
   
