@@ -1,9 +1,10 @@
-const connection = require('../db').connection;
+const connection = require('../db'); 
 
 // Function to find peak hours and locations for taxi activity (Query 9)
 const peakHoursAnalysis = async function (req, res) {
+  const client = await connection.connect();
   try {
-    const result = await connection.query(`
+    const result = await client.query(`
       SELECT g.zone, b.borough, EXTRACT(HOUR FROM t.tpep_pickup_datetime) AS hour, COUNT(*) AS activity_count
       FROM taxi t
       JOIN nyc_geometry g ON t.pu_location_id = g.location_id
@@ -16,13 +17,16 @@ const peakHoursAnalysis = async function (req, res) {
   } catch (error) {
     console.error('Error analyzing peak hours:', error);
     res.status(500).json({ error: 'Failed to analyze peak hours' });
+  } finally {
+    client.release(); 
   }
 };
 
 // Function to find trips with outlier tips (Query 10)
 const tipAnalysis = async function (req, res) {
+  const client = await connection.connect();
   try {
-    const result = await connection.query(`
+    const result = await client.query(`
       WITH tip_stats AS (
         SELECT
           PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY tip_amount) AS q1,
@@ -53,13 +57,16 @@ const tipAnalysis = async function (req, res) {
   } catch (error) {
     console.error('Error analyzing tips:', error);
     res.status(500).json({ error: 'Failed to analyze tips' });
+  } finally {
+    client.release(); 
   }
 };
 
 // Function to find collision hotspots with very few taxi pickups (Query 11)
 const collisionHotspots = async function (req, res) {
+  const client = await connection.connect();
   try {
-    const result = await connection.query(`
+    const result = await client.query(`
       WITH taxi_activity AS (
         SELECT g.location_id, COUNT(t.*) AS pickup_count
         FROM nyc_geometry g
@@ -79,13 +86,16 @@ const collisionHotspots = async function (req, res) {
   } catch (error) {
     console.error('Error finding collision hotspots:', error);
     res.status(500).json({ error: 'Failed to find collision hotspots' });
+  } finally {
+    client.release(); 
   }
 };
 
 // Function to analyze collisions and taxi pickups within 5000 units of each other (Query 12)
 const proximityAnalysis = async function (req, res) {
+  const client = await connection.connect();
   try {
-    const result = await connection.query(`
+    const result = await client.query(`
       WITH collision_points AS (
         SELECT
           c.collision_id,
@@ -117,14 +127,20 @@ const proximityAnalysis = async function (req, res) {
   } catch (error) {
     console.error('Error analyzing collision and taxi proximity:', error);
     res.status(500).json({ error: 'Failed to analyze collision and taxi proximity' });
+  } finally {
+    client.release(); 
   }
 };
 
+
+
+
 // Function to retrieve collisions involving a specific street name
 const collisionsOnStreet = async function (req, res) {
+  const client = await connection.connect();
   try {
     const streetName = req.params.street_name; // Get the street name from the request parameters
-    const result = await connection.query(`
+    const result = await client.query(`
       SELECT *
       FROM collision c
       WHERE EXISTS (
@@ -145,6 +161,8 @@ const collisionsOnStreet = async function (req, res) {
   } catch (err) {
     console.error('Error retrieving collisions on street:', err);
     res.status(500).send('Error retrieving collisions on street');
+  } finally {
+    client.release(); 
   }
 };
 

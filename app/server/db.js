@@ -15,6 +15,6 @@ const connection = new Pool({
     rejectUnauthorized: false,
   },
 });
-connection.connect((err) => err && console.log(err));
+
 
 module.exports = connection;

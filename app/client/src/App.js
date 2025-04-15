@@ -5,6 +5,8 @@ import { createTheme } from "@mui/material/styles";
 
 import NavBar from './components/NavBar';
 import LocationInfoPage from './pages/LocationInfoPage';
+import TopStatsPage from './pages/TopStatsPage';
+import CollisionsByDatePage from "./pages/CollisionsByDatePage";
 
 // createTheme enables you to customize the look and feel of your app past the default
 // in this case, we customize the color scheme, typography, and component styles
@@ -65,6 +67,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LocationInfoPage />} />
           <Route path="/location/:location_id" element={<LocationInfoPage />} />
+          <Route path="/topstats" element={<TopStatsPage />} />
+          <Route path="/collisions" element={<CollisionsByDatePage />} />
           {/* add a link to the WeeklyCollisions Page below */}
           {/* <Route path="/weekly-collisions" element={<WeeklyCollisionsPage />} />*/}
 

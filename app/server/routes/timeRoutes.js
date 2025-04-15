@@ -1,9 +1,10 @@
-const connection = require('../db').connection;
+const connection = require('../db'); 
 
 // Function to analyze how safety (collisions) varies by season (Query 6)
 const safetyBySeason = async function (req, res) {
+  const client = await connection.connect();
   try {
-    const result = await connection.query(`
+    const result = await client.query(`
       SELECT
         CASE
           WHEN EXTRACT(MONTH FROM crash_date) IN (12, 1, 2) THEN 'Winter'
@@ -21,14 +22,17 @@ const safetyBySeason = async function (req, res) {
   } catch (error) {
     console.error('Error analyzing safety by season:', error);
     res.status(500).json({ error: 'Failed to analyze safety by season' });
+  } finally {
+    client.release(); 
   }
 };
 
 // Function to compute the collision rate per 1,000 taxi rides at a location in a date range (Query 7)
 const collisionRate = async function (req, res) {
+  const client = await connection.connect();
   try {
     const { start_date, end_date, location_id } = req.query;
-    const result = await connection.query(`
+    const result = await client.query(`
       WITH collisions_count AS (
         SELECT COUNT(*) AS collisions
         FROM collision c
@@ -51,13 +55,16 @@ const collisionRate = async function (req, res) {
   } catch (error) {
     console.error('Error computing collision rate:', error);
     res.status(500).json({ error: 'Failed to compute collision rate' });
+  } finally {
+    client.release(); 
   }
 };
 
 // Function to find same collision date-hours (Query 8)
 const sameCollisionDateHours = async function (req, res) {
+  const client = await connection.connect();
   try {
-    const result = await connection.query(`
+    const result = await client.query(`
       SELECT
         DATE(crash_date) AS date,
         EXTRACT(HOUR FROM crash_time::time) AS hour,
@@ -72,11 +79,49 @@ const sameCollisionDateHours = async function (req, res) {
   } catch (error) {
     console.error('Error finding same collision date-hours:', error);
     res.status(500).json({ error: 'Failed to find same collision date-hours' });
+  } finally {
+    client.release(); 
   }
 };
+
+// Function to list collisions in a given date range (pageable)
+const collisionsInDateRange = async function (req, res) {
+  const client = await connection.connect();
+  const { start_date, end_date, limit = 10, offset = 0 } = req.query;
+
+  if (!start_date || !end_date) {
+    return res.status(400).json({ error: 'Missing start_date or end_date query parameter' });
+  }
+
+  try {
+    const result = await client.query(`
+      SELECT 
+        collision_id,
+        crash_date,
+        borough_id,
+        latitude,
+        longitude,
+        number_of_persons_injured,
+        number_of_persons_killed
+      FROM collision
+      WHERE crash_date BETWEEN $1 AND $2
+      ORDER BY crash_date ASC
+      LIMIT $3 OFFSET $4;
+    `, [start_date, end_date, parseInt(limit), parseInt(offset)]);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error retrieving collisions by date:', error);
+    res.status(500).json({ error: 'Failed to retrieve collision data' });
+  } finally {
+    client.release(); 
+  }
+};
+
 
 module.exports = {
   safetyBySeason,
   collisionRate,
   sameCollisionDateHours,
+  collisionsInDateRange
 };

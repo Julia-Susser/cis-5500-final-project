@@ -3,9 +3,10 @@ const connection = require('../db');
 
 // Function to retrieve total taxi pickups and drop-offs in a given location
 const pickupsDropoffs = async function (req, res) {
+  const client = await connection.connect();
     try {
       const locationId = req.params.location_id;
-      const result = await connection.query(`
+      const result = await client.query(`
         SELECT g.zone, b.borough,
        COUNT(CASE WHEN t.pu_location_id = g.location_id THEN 1 END) AS total_pickups,
        COUNT(CASE WHEN t.do_location_id = g.location_id THEN 1 END) AS total_dropoffs
@@ -19,14 +20,17 @@ const pickupsDropoffs = async function (req, res) {
     } catch (err) {
       console.error('Error retrieving pickups and drop-offs:', err);
       res.status(500).send('Error retrieving pickups and drop-offs');
+    } finally {
+      client.release(); 
     }
-  };
+};
   
 // Function to retrieve the number of collisions and injuries recorded in the area
 const collisionsInjuries = async function (req, res) {
+  const client = await connection.connect();
     try {
       const locationId = req.params.location_id;
-      const result = await connection.query(`
+      const result = await client.query(`
         SELECT g.zone, b.borough,
                COUNT(*) AS collisions,
                SUM(c.number_of_persons_injured) AS total_injuries
@@ -40,17 +44,20 @@ const collisionsInjuries = async function (req, res) {
     } catch (err) {
       console.error('Error retrieving collisions and injuries:', err);
       res.status(500).send('Error retrieving collisions and injuries');
+    } finally {
+      client.release(); 
     }
-  };
+};
 
 // Function to retrieve the average fare and trip distance for rides in the location
 const fareTripDistance = async function (req, res) {
+  const client = await connection.connect();
     try {
       const locationId = req.params.location_id;
-      const result = await connection.query(`
+      const result = await client.query(`
         SELECT g.zone, b.borough,
-        AVG(t.fare_amount) AS average_fare,
-        AVG(t.trip_distance) AS average_distance
+        ROUND(AVG(t.fare_amount), 2) AS average_fare,
+        ROUND(AVG(t.trip_distance), 2) AS average_distance
         FROM taxi t
         JOIN nyc_geometry g ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
         JOIN borough_lut b ON g.borough_id = b.borough_id
@@ -61,14 +68,17 @@ const fareTripDistance = async function (req, res) {
     } catch (err) {
       console.error('Error retrieving fare and trip distance:', err);
       res.status(500).send('Error retrieving fare and trip distance');
+    } finally {
+      client.release(); 
     }
-  };
+};
 
 // Function to retrieve the ranking of the area in terms of safety and taxi availability
 const safetyRanking = async function (req, res) {
+  const client = await connection.connect();
     try {
       const locationId = req.params.location_id;
-      const result = await connection.query(`
+      const result = await client.query(`
         WITH safety AS (
           SELECT g.location_id, g.zone, g.borough_id,
                  RANK() OVER (ORDER BY COUNT(*) + COALESCE(SUM(c.number_of_persons_injured), 0)) AS safety_rank
@@ -95,14 +105,17 @@ const safetyRanking = async function (req, res) {
     } catch (err) {
       console.error('Error retrieving safety ranking:', err);
       res.status(500).send('Error retrieving safety ranking');
+    } finally {
+      client.release(); 
     }
-  };
+};
 
 
 // Get valid location IDs with taxi activity and collisions (Query 5)
 const validLocations = async function (req, res)  {
+  const client = await connection.connect();
   try {
-    const result = await connection.query(`
+    const result = await client.query(`
       WITH collision_boroughs AS (
         SELECT DISTINCT borough_id
         FROM collision
@@ -130,12 +143,16 @@ const validLocations = async function (req, res)  {
   } catch (error) {
     console.error('Error fetching valid locations:', error);
     res.status(500).json({ error: 'Failed to fetch valid locations' });
+  } finally {
+    client.release(); 
   }
+
 }
  
 const getNYCGeometry = async function (req, res) {
+  const client = await connection.connect();
     try {
-        const result = await connection.query(`
+        const result = await client.query(`
             SELECT g.location_id, g.zone, b.borough, g.geometry_shp
             FROM nyc_geometry g
             JOIN borough_lut b ON g.borough_id = b.borough_id
@@ -145,6 +162,8 @@ const getNYCGeometry = async function (req, res) {
     } catch (err) {
         console.error('Error retrieving NYC geometry data:', err);
         res.status(500).send('Error retrieving NYC geometry data');
+    }finally {
+      client.release(); 
     }
 };
 
@@ -191,14 +210,14 @@ function parseWKTPolygon(wkt) {
       type: "MultiPolygon",
       coordinates: polygons
     };
-  }
-
+  } 
   return null;
 }
 
 const getNYCGeometryMap = async function (req, res) {
+  const client = await connection.connect();
   try {
-    const result = await connection.query(`
+    const result = await client.query(`
       SELECT g.location_id, g.zone, b.borough, g.geometry_shp
       FROM nyc_geometry g
       JOIN borough_lut b ON g.borough_id = b.borough_id
@@ -220,6 +239,8 @@ const getNYCGeometryMap = async function (req, res) {
   } catch (err) {
     console.error('Error retrieving NYC geometry map data:', err);
     res.status(500).send('Error retrieving NYC geometry map data');
+  } finally {
+    client.release(); 
   }
 };
 
