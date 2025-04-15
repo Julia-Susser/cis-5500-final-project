@@ -27,7 +27,11 @@ export default function LocationInfoPage() {
 
         fetch(`http://${config.server_host}:${config.server_port}/location/nyc_geometry_map`)
         .then(res => res.json())
-        .then(data => setGeometryMap(data.features));
+        .then(data => {
+          setGeometryMap(data.features || [])
+        }
+        );
+
   
       fetch(`http://${config.server_host}:${config.server_port}/location/valid_locations`)
         .then(res => res.json())
@@ -63,9 +67,6 @@ export default function LocationInfoPage() {
               average_trip_distance: fareJson.average_distance
             }))
           );
-
-  
-        console.log(`http://${config.server_host}:${config.server_port}/location/${locationId}/safety_ranking`);
         fetch(`http://${config.server_host}:${config.server_port}/location/${locationId}/safety_ranking`)
           .then(res => res.json())
           .then(safetyJson =>
@@ -81,29 +82,28 @@ export default function LocationInfoPage() {
     fetchData();
   }, [locationId]);
 
-  useEffect(() => {
-    console.log('locationMetrics updated:', locationMetrics);
-  }, [locationMetrics]);
   
 
+    const features = geometryMap.map((item) => (item));
   
 
-  function FitBounds({ geometryMap }) {
-    const map = useMap();
-    React.useEffect(() => {
-      if (geometryMap.length > 0) {
-        const allBounds = geometryMap.map((feature) =>
-          L.geoJSON(feature).getBounds()
-        );
-        const combinedBounds = allBounds.reduce((acc, bounds) =>
-          acc.extend(bounds)
-        );
-        map.fitBounds(combinedBounds);
-      }
-    }, [geometryMap, map]);
+    function FitBounds({ features }) {
+      const map = useMap();
+      React.useEffect(() => {
+        if (features.length > 0) {
+          const allBounds = features.map((feature) =>
+            L.geoJSON(feature).getBounds()
+          );
+          const combinedBounds = allBounds.reduce((acc, bounds) =>
+            acc.extend(bounds)
+          );
+          map.fitBounds(combinedBounds);
+        }
+      }, [features, map]);
+    
+      return null;
+    }
   
-    return null;
-  }
   
   return (
     <Container sx={{ 

@@ -5,7 +5,6 @@ import { createTheme } from "@mui/material/styles";
 
 import NavBar from './components/NavBar';
 import LocationInfoPage from './pages/LocationInfoPage';
-import WeeklyCollisionsPage from './pages/WeeklyCollisionsPage';
 
 // createTheme enables you to customize the look and feel of your app past the default
 // in this case, we customize the color scheme, typography, and component styles
