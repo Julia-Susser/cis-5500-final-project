@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Container, FormControl, InputLabel, MenuItem, Select, Slider, Typography } from '@mui/material';
-
-// For Leaflet and React-Leaflet
-import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import React from 'react';
 import 'leaflet/dist/leaflet.css';
 
 // For Heatmap Layer
@@ -10,14 +10,33 @@ import { HeatmapLayer } from 'react-leaflet-heatmap-layer-v3';
 
 const config = require('../config.json');
 
+// Add FitBounds component for auto-zooming
+function FitBounds({ features }) {
+  const map = useMap();
+  React.useEffect(() => {
+    if (features && features.length > 0) {
+      try {
+        const allBounds = features.map(feature => L.geoJSON(feature).getBounds());
+        const combinedBounds = allBounds.reduce((acc, bounds) => acc.extend(bounds));
+        map.fitBounds(combinedBounds);
+      } catch (error) {
+        console.error('Error fitting bounds:', error);
+      }
+    }
+  }, [features, map]);
+
+  return null;
+}
+
 export default function WeeklyCollisionsPage() {
   // State management
   const [boroughs, setBoroughs] = useState([]);
-  const [selectedBorough, setSelectedBorough] = useState('MANHATTAN');
+  const [selectedBorough, setSelectedBorough] = useState('Manhattan');
   const [geometryData, setGeometryData] = useState([]);
   const [heatmapData, setHeatmapData] = useState([]);
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const [availableWeeks, setAvailableWeeks] = useState([]);
+  const [boroughGeometryMap, setBoroughGeometryMap] = useState([]);
 
   // Generate available weeks (last 12 weeks)
   useEffect(() => {
@@ -37,6 +56,32 @@ export default function WeeklyCollisionsPage() {
     setSelectedWeekIndex(0);
   }, []);
 
+  // Generate weeks for 2024
+  useEffect(() => {
+    const weeks = [];
+    const startDate = new Date('2024-01-01');
+    const endDate = new Date('2024-12-31');
+    
+    // Get the first Monday of 2024
+    while (startDate.getDay() !== 1) {
+      startDate.setDate(startDate.getDate() + 1);
+    }
+
+    // Generate all weeks until end of 2024
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      weeks.push({
+        value: currentDate.toISOString().split('T')[0],
+        label: `Week of ${currentDate.toLocaleDateString()}`,
+        month: currentDate.toLocaleString('default', { month: 'short' })
+      });
+      currentDate.setDate(currentDate.getDate() + 7);
+    }
+
+    setAvailableWeeks(weeks);
+    setSelectedWeekIndex(0);
+  }, []);
+
   // Fetch borough geometries
   useEffect(() => {
     fetch(`http://${config.server_host}:${config.server_port}/location/nyc_geometry`)
@@ -44,7 +89,7 @@ export default function WeeklyCollisionsPage() {
       .then(data => {
         console.log('Received geometry data:', data);
         setGeometryData(data);
-        const uniqueBoroughs = [...new Set(data.map(item => item.borough))];
+        const uniqueBoroughs = [...new Set(data.map(item => item.borough))].filter(Boolean);
         console.log('Unique boroughs:', uniqueBoroughs);
         setBoroughs(uniqueBoroughs);
       })
@@ -73,8 +118,25 @@ export default function WeeklyCollisionsPage() {
     }
   }, [selectedBorough, selectedWeekIndex, availableWeeks]);
 
+  // Fetch borough geometry map
+  useEffect(() => {
+    fetch(`http://${config.server_host}:${config.server_port}/location/nyc_geometry_map`)
+      .then(res => res.json())
+      .then(data => {
+        // Filter features for the selected borough
+        const boroughFeatures = data.features.filter(
+          feature => feature.properties.borough === selectedBorough
+        );
+        setBoroughGeometryMap(boroughFeatures);
+      })
+      .catch(error => {
+        console.error('Error fetching geometry map:', error);
+      });
+  }, [selectedBorough]);
+
   const handleBoroughChange = (event) => {
     setSelectedBorough(event.target.value);
+    setBoroughGeometryMap([]); 
   };
 
   const marks = availableWeeks.map((week, index) => ({
@@ -83,9 +145,6 @@ export default function WeeklyCollisionsPage() {
   })).filter((mark, index, array) => {
     return index === 0 || mark.label !== array[index - 1].label;
   });
-
-  // Filter geometry data for selected borough
-  const boroughGeometry = geometryData.filter(item => item.borough === selectedBorough);
 
   return (
     <Container>
@@ -122,25 +181,27 @@ export default function WeeklyCollisionsPage() {
       <MapContainer
         center={[40.7128, -74.0060]}
         zoom={11}
-        style={{ height: '600px', width: '100%', marginTop: '20px' }}
+        style={{ height: '600px', width: '100%', marginTop: '20px', background: '#ffffff' }}
+        zoomControl={true}
+        scrollWheelZoom={true}
       >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
-        {boroughGeometry.map((geo, idx) => (
-          <GeoJSON 
-            key={idx} 
-            data={geo.geometry} 
-            style={{
-              fillColor: '#3388ff',
-              weight: 2,
-              opacity: 1,
-              color: 'white',
-              fillOpacity: 0.2
-            }}
-          />
-        ))}
+        {boroughGeometryMap.length > 0 && (
+          <>
+            <FitBounds features={boroughGeometryMap.map(item => item.geometry)} />
+            {boroughGeometryMap.map((geo, idx) => (
+              <GeoJSON 
+                key={idx} 
+                data={geo.geometry} 
+                style={{
+                  color: '#2c7bb6',
+                  weight: 1.5,
+                  fillOpacity: 0.4,
+                  fillColor: '#abd9e9'
+                }}
+              />
+            ))}
+          </>
+        )}
         <HeatmapLayer
           points={heatmapData}
           longitudeExtractor={m => m.lng}
