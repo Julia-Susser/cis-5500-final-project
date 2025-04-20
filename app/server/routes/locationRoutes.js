@@ -227,6 +227,7 @@ const getNYCGeometryMap = async function (req, res) {
       type: "Feature",
       geometry: parseWKTPolygon(item.geometry_shp),
       properties: {
+        location_id: item.location_id,
         zone: item.zone,
         borough: item.borough
       }
