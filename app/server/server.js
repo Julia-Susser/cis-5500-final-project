@@ -54,6 +54,9 @@ app.get('/time/collision_rate', routes.collisionRate);
 // Takes: No parameters.
 app.get('/time/same_collision_date_hours', routes.sameCollisionDateHours);
 
+
+app.get('/time/collisions', routes.collisionsInDateRange);
+
 // =======================
 // Area-Based Analytics (Queries 10–13)
 // =======================

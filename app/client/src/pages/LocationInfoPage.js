@@ -88,6 +88,7 @@ export default function LocationInfoPage() {
   
 
     function FitBounds({ features }) {
+      console.log(features)
       const map = useMap();
       React.useEffect(() => {
         if (features.length > 0) {
