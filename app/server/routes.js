@@ -5,6 +5,7 @@ const config = require('./config.json')
 const { pickupsDropoffs, collisionsInjuries, fareTripDistance, safetyRanking, validLocations, getNYCGeometry, getNYCGeometryMap } = require('./routes/locationRoutes');
 const { peakHoursAnalysis, tipAnalysis, collisionHotspots, proximityAnalysis, collisionsOnStreet } = require('./routes/areaRoutes');
 const { safetyBySeason, collisionRate, sameCollisionDateHours } = require('./routes/timeRoutes');
+const { weeklyCollisions } = require('./routes/safetyRoutes');
 
 module.exports = {
   // Location routes (Queries 1-5)
@@ -25,5 +26,8 @@ module.exports = {
   tipAnalysis,
   collisionHotspots,
   proximityAnalysis,
-  collisionsOnStreet
+  collisionsOnStreet,
+
+  // Safety routes (Query 14)
+  weeklyCollisions,
 };

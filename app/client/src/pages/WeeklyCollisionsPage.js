@@ -1,14 +1,32 @@
 import { useEffect, useState } from 'react';
 import { Container, FormControl, InputLabel, MenuItem, Select, Slider, Typography } from '@mui/material';
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import React from 'react';
 import 'leaflet/dist/leaflet.css';
 
-// For Heatmap Layer
-import { HeatmapLayer } from 'react-leaflet-heatmap-layer-v3';
-
 const config = require('../config.json');
+
+// Add these helper functions at the top of your file, after the imports
+function getColor(count, minCount, maxCount) {
+  // Return grey for any undefined/null values
+  if (count === undefined || count === null || 
+      minCount === undefined || maxCount === undefined || 
+      minCount === maxCount) {
+    return '#808080';  // grey color
+  }
+  
+  // Calculate percentage between min and max
+  const percentage = (count - minCount) / (maxCount - minCount);
+  
+  // Ensure percentage is between 0 and 1
+  const boundedPercentage = Math.max(0, Math.min(1, percentage));
+  
+  // Convert from yellow (rgb(255, 255, 0)) to red (rgb(255, 0, 0))
+  const green = Math.round(255 * (1 - boundedPercentage));
+  
+  return `rgb(255, ${green}, 0)`;
+}
 
 // Add FitBounds component for auto-zooming
 function FitBounds({ features }) {
@@ -31,12 +49,12 @@ function FitBounds({ features }) {
 export default function WeeklyCollisionsPage() {
   // State management
   const [boroughs, setBoroughs] = useState([]);
-  const [selectedBorough, setSelectedBorough] = useState('Manhattan');
+  const [selectedBorough, setSelectedBorough] = useState('All Boroughs');
   const [geometryData, setGeometryData] = useState([]);
-  const [heatmapData, setHeatmapData] = useState([]);
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const [availableWeeks, setAvailableWeeks] = useState([]);
   const [boroughGeometryMap, setBoroughGeometryMap] = useState([]);
+  const [collisionCounts, setCollisionCounts] = useState([]);
 
   // Generate available weeks (last 12 weeks)
   useEffect(() => {
@@ -89,7 +107,7 @@ export default function WeeklyCollisionsPage() {
       .then(data => {
         console.log('Received geometry data:', data);
         setGeometryData(data);
-        const uniqueBoroughs = [...new Set(data.map(item => item.borough))].filter(Boolean);
+        const uniqueBoroughs = ['All Boroughs', ...new Set(data.map(item => item.borough))].filter(Boolean);
         console.log('Unique boroughs:', uniqueBoroughs);
         setBoroughs(uniqueBoroughs);
       })
@@ -98,22 +116,41 @@ export default function WeeklyCollisionsPage() {
       });
   }, []);
 
-  // Fetch collision data when borough or week changes
+  // Update the collision data fetch useEffect
   useEffect(() => {
-    if (selectedBorough && availableWeeks[selectedWeekIndex]) {
+    if (availableWeeks[selectedWeekIndex]) {  // Remove the selectedBorough check
       const startDate = new Date(availableWeeks[selectedWeekIndex].value);
       const endDate = new Date(availableWeeks[selectedWeekIndex].value);
       endDate.setDate(startDate.getDate() + 6);
 
-      fetch(`http://${config.server_host}:${config.server_port}/time/same_collision_date_hours?borough=${selectedBorough}&start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`)
-        .then(res => res.json())
+      const url = new URL(`http://${config.server_host}:${config.server_port}/safety/weekly_collisions`);
+      // Only add borough parameter if a specific borough is selected
+      if (selectedBorough !== 'All Boroughs') {
+        url.searchParams.append('borough', selectedBorough);
+      }
+      url.searchParams.append('start_date', startDate.toISOString().split('T')[0]);
+      url.searchParams.append('end_date', endDate.toISOString().split('T')[0]);
+
+      console.log('Fetching collision data from:', url.toString());
+
+      fetch(url)
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
         .then(data => {
-          const heatmapPoints = data.map(collision => ({
-            lat: collision.latitude,
-            lng: collision.longitude,
-            intensity: 1
+          console.log('Received collision counts:', data);
+          const processedData = data.map(item => ({
+            ...item,
+            collision_count: parseInt(item.collision_count, 10) || 0
           }));
-          setHeatmapData(heatmapPoints);
+          setCollisionCounts(processedData);
+        })
+        .catch(error => {
+          console.error('Error fetching collision counts:', error);
+          setCollisionCounts([]);
         });
     }
   }, [selectedBorough, selectedWeekIndex, availableWeeks]);
@@ -123,10 +160,14 @@ export default function WeeklyCollisionsPage() {
     fetch(`http://${config.server_host}:${config.server_port}/location/nyc_geometry_map`)
       .then(res => res.json())
       .then(data => {
-        // Filter features for the selected borough
-        const boroughFeatures = data.features.filter(
-          feature => feature.properties.borough === selectedBorough
-        );
+        // Filter features for the selected borough, or show all if "All Boroughs" is selected
+        const boroughFeatures = selectedBorough === 'All Boroughs' 
+          ? data.features
+          : data.features.filter(feature => feature.properties.borough === selectedBorough);
+
+          console.log('data.features: ', data.features);
+          console.log('Borough.features: ', boroughFeatures);
+
         setBoroughGeometryMap(boroughFeatures);
       })
       .catch(error => {
@@ -188,29 +229,55 @@ export default function WeeklyCollisionsPage() {
         {boroughGeometryMap.length > 0 && (
           <>
             <FitBounds features={boroughGeometryMap.map(item => item.geometry)} />
-            {boroughGeometryMap.map((geo, idx) => (
-              <GeoJSON 
-                key={idx} 
-                data={geo.geometry} 
-                style={{
-                  color: '#2c7bb6',
-                  weight: 1.5,
-                  fillOpacity: 0.4,
-                  fillColor: '#abd9e9'
-                }}
-              />
-            ))}
+            {(() => {
+              // Map collision counts to their location IDs for easier lookup
+              const collisionMap = new Map(
+                collisionCounts.map(c => [c.location_id, c.collision_count])
+              );
+              
+              // Get all counts including zeros for missing locations
+              const allCounts = boroughGeometryMap.map(geo => 
+                collisionMap.get(geo.properties.location_id) || 0
+              );
+              
+              const minCount = Math.min(...allCounts);
+              const maxCount = Math.max(...allCounts);
+              
+              return boroughGeometryMap.map((geo, idx) => {
+                const locationId = geo.properties.location_id;
+                const count = collisionMap.get(locationId) || 0;
+                
+                const fillColor = getColor(count, minCount, maxCount);
+                
+                return (
+                  <GeoJSON 
+                    key={`${locationId}-${idx}-${count}`} // Add count to key to force re-render
+                    data={geo.geometry} 
+                    style={{
+                      color: '#666',
+                      weight: 1,
+                      fillOpacity: 0.8,
+                      fillColor: fillColor,
+                    }}
+                    onEachFeature={(feature, layer) => {
+                      // Create the initial popup
+                      const popup = L.popup();
+                      
+                      // Update popup content whenever the layer is clicked
+                      layer.on('click', () => {
+                        popup.setContent(
+                          `Location: ${geo.properties.zone}<br/>
+                           Collisions: ${count}`
+                        );
+                        layer.bindPopup(popup);
+                      });
+                    }}
+                  />
+                );
+              });
+            })()}
           </>
         )}
-        <HeatmapLayer
-          points={heatmapData}
-          longitudeExtractor={m => m.lng}
-          latitudeExtractor={m => m.lat}
-          intensityExtractor={m => m.intensity}
-          radius={20}
-          max={1}
-          minOpacity={0.3}
-        />
       </MapContainer>
     </Container>
   );

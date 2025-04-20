@@ -78,6 +78,10 @@ app.get('/collision/proximity_analysis', routes.proximityAnalysis);
 // // Takes: `street_name` as a URL parameter.
 app.get('/collision/on_street/:street_name', routes.collisionsOnStreet);
 
+// // Query 15: Retrieves weekly collisions for a specific borough and date range.
+// // Takes: `borough`, `start_date`, and `end_date` as query parameters.
+app.get('/safety/weekly_collisions', routes.weeklyCollisions);
+
 // =======================
 // Start the server
 // =======================
