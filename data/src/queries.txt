@@ -1,6 +1,9 @@
-Here is the complete list of SQL queries for Queries 1–15, formatted exactly to match your API spec:
+Here's the full list of Queries 1–15, now updated with example parameter values:
 
----
+- Location ID → `3`  
+- Start date → `'2024-01-01'`  
+- End date → `'2024-12-31'`  
+- Borough → `'Manhattan'`
 
 Query 1: /api/location/:location_id/pickupsDropoffs
 
@@ -10,8 +13,24 @@ SELECT g.zone, b.borough,
 FROM nyc_geometry g
 LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
 JOIN borough_lut b ON g.borough_id = b.borough_id
-WHERE g.location_id = $1
+WHERE g.location_id = 3
 GROUP BY b.borough, g.zone;
+
+HashAggregate  (cost=252537.10..252537.15 rows=5 width=63) (actual time=49955.765..49956.029 rows=1 loops=1)
+"  Group Key: b.borough, g.zone"
+  Batches: 1  Memory Usage: 24kB
+  ->  Nested Loop Left Join  (cost=0.15..251961.28 rows=38388 width=59) (actual time=138.093..49137.728 rows=735 loops=1)
+        Join Filter: ((t.pu_location_id = g.location_id) OR (t.do_location_id = g.location_id))
+        Rows Removed by Join Filter: 5999265
+        ->  Nested Loop  (cost=0.15..9.28 rows=1 width=51) (actual time=39.810..43.271 rows=1 loops=1)
+              Join Filter: (b.borough_id = g.borough_id)
+              Rows Removed by Join Filter: 3
+              ->  Index Scan using nyc_geometry_merged_pkey on nyc_geometry g  (cost=0.15..8.17 rows=1 width=23) (actual time=20.531..21.352 rows=1 loops=1)
+                    Index Cond: (location_id = 3)
+              ->  Seq Scan on borough_lut b  (cost=0.00..1.05 rows=5 width=36) (actual time=18.497..18.505 rows=4 loops=1)
+        ->  Seq Scan on taxi t  (cost=0.00..161952.00 rows=6000000 width=8) (actual time=4.064..48069.167 rows=6000000 loops=1)
+Planning Time: 279.266 ms
+Execution Time: 49989.559 ms
 
 
 ---
@@ -24,8 +43,25 @@ SELECT g.zone, b.borough,
 FROM collision c
 JOIN borough_lut b ON c.borough_id = b.borough_id
 JOIN nyc_geometry g ON b.borough_id = g.borough_id
-WHERE g.location_id = $1
+WHERE g.location_id = 3
 GROUP BY b.borough, g.zone;
+
+HashAggregate  (cost=3264.18..3264.23 rows=5 width=63) (actual time=1510.434..1510.448 rows=1 loops=1)
+"  Group Key: b.borough, g.zone"
+  Batches: 1  Memory Usage: 24kB
+  ->  Hash Join  (cost=9.29..3151.39 rows=11279 width=51) (actual time=84.739..1506.377 rows=7482 loops=1)
+        Hash Cond: (c.borough_id = b.borough_id)
+        ->  Seq Scan on collision c  (cost=0.00..2802.34 rows=64334 width=8) (actual time=27.503..1442.510 rows=64334 loops=1)
+        ->  Hash  (cost=9.28..9.28 rows=1 width=55) (actual time=55.944..55.949 rows=1 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              ->  Nested Loop  (cost=0.15..9.28 rows=1 width=55) (actual time=55.928..55.934 rows=1 loops=1)
+                    Join Filter: (b.borough_id = g.borough_id)
+                    Rows Removed by Join Filter: 3
+                    ->  Index Scan using nyc_geometry_merged_pkey on nyc_geometry g  (cost=0.15..8.17 rows=1 width=19) (actual time=54.968..54.970 rows=1 loops=1)
+                          Index Cond: (location_id = 3)
+                    ->  Seq Scan on borough_lut b  (cost=0.00..1.05 rows=5 width=36) (actual time=0.034..0.034 rows=4 loops=1)
+Planning Time: 782.395 ms
+Execution Time: 1622.738 ms
 
 
 ---
@@ -38,13 +74,29 @@ SELECT g.zone, b.borough,
 FROM taxi t
 JOIN nyc_geometry g ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
 JOIN borough_lut b ON g.borough_id = b.borough_id
-WHERE g.location_id = $1
+WHERE g.location_id = 3
 GROUP BY b.borough, g.zone;
+
+HashAggregate  (cost=252345.16..252345.26 rows=5 width=111) (actual time=59319.141..59321.690 rows=1 loops=1)
+"  Group Key: b.borough, g.zone"
+  Batches: 1  Memory Usage: 24kB
+  ->  Nested Loop  (cost=0.15..251961.28 rows=38388 width=59) (actual time=124.371..59003.065 rows=735 loops=1)
+        Join Filter: ((t.pu_location_id = g.location_id) OR (t.do_location_id = g.location_id))
+        Rows Removed by Join Filter: 5999265
+        ->  Nested Loop  (cost=0.15..9.28 rows=1 width=51) (actual time=53.040..55.602 rows=1 loops=1)
+              Join Filter: (b.borough_id = g.borough_id)
+              Rows Removed by Join Filter: 3
+              ->  Index Scan using nyc_geometry_merged_pkey on nyc_geometry g  (cost=0.15..8.17 rows=1 width=23) (actual time=31.672..31.694 rows=1 loops=1)
+                    Index Cond: (location_id = 3)
+              ->  Seq Scan on borough_lut b  (cost=0.00..1.05 rows=5 width=36) (actual time=21.349..22.674 rows=4 loops=1)
+        ->  Seq Scan on taxi t  (cost=0.00..161952.00 rows=6000000 width=20) (actual time=38.649..55179.585 rows=6000000 loops=1)
+Planning Time: 61.440 ms
+Execution Time: 59331.454 ms
 
 
 ---
 
-Query 4: /api/location/:location_id/safetyRanking
+Query 4: /api/location/:location_id/safetyRanking (COMPLEX)
 
 WITH safety AS (
   SELECT g.location_id, g.zone, g.borough_id,
@@ -66,8 +118,58 @@ SELECT s.zone, s.borough_id,
        t.taxi_availability_rank
 FROM safety s
 JOIN taxi_activity t ON s.location_id = t.location_id
-WHERE s.location_id = $1;
+WHERE s.location_id = 3;
 
+Nested Loop  (cost=27553352.79..27553369.02 rows=1 width=35) (actual time=350177.191..350213.544 rows=1 loops=1)
+  ->  Subquery Scan on s  (cost=31371.88..31380.31 rows=1 width=31) (actual time=4129.944..4166.259 rows=1 loops=1)
+        Filter: (s.location_id = 3)
+        Rows Removed by Filter: 258
+        ->  WindowAgg  (cost=31371.88..31377.06 rows=260 width=39) (actual time=4129.914..4166.235 rows=259 loops=1)
+              ->  Sort  (cost=31371.86..31372.51 rows=260 width=31) (actual time=4129.884..4166.017 rows=259 loops=1)
+"                    Sort Key: ((count(*) + COALESCE(sum(c.number_of_persons_injured), '0'::bigint)))"
+                    Sort Method: quicksort  Memory: 38kB
+                    ->  Finalize GroupAggregate  (cost=31326.34..31361.44 rows=260 width=31) (actual time=4129.438..4164.493 rows=259 loops=1)
+                          Group Key: g.location_id
+                          ->  Gather Merge  (cost=31326.34..31356.24 rows=260 width=39) (actual time=4129.416..4164.282 rows=518 loops=1)
+                                Workers Planned: 1
+                                Workers Launched: 1
+                                ->  Sort  (cost=30326.33..30326.98 rows=260 width=39) (actual time=3164.908..3164.971 rows=259 loops=2)
+                                      Sort Key: g.location_id
+                                      Sort Method: quicksort  Memory: 40kB
+                                      Worker 0:  Sort Method: quicksort  Memory: 40kB
+                                      ->  Partial HashAggregate  (cost=30313.30..30315.90 rows=260 width=39) (actual time=3164.270..3164.490 rows=259 loops=2)
+                                            Group Key: g.location_id
+                                            Batches: 1  Memory Usage: 61kB
+                                            Worker 0:  Batches: 1  Memory Usage: 61kB
+                                            ->  Hash Join  (cost=135.59..17376.19 rows=1724948 width=27) (actual time=14.922..2000.228 rows=1467035 loops=2)
+                                                  Hash Cond: (c.borough_id = b.borough_id)
+                                                  ->  Parallel Seq Scan on collision c  (cost=0.00..2537.44 rows=37844 width=8) (actual time=0.081..1115.447 rows=32167 loops=2)
+                                                  ->  Hash  (cost=132.87..132.87 rows=217 width=27) (actual time=0.762..0.781 rows=260 loops=2)
+                                                        Buckets: 1024  Batches: 1  Memory Usage: 24kB
+                                                        ->  Hash Join  (cost=1.11..132.87 rows=217 width=27) (actual time=0.196..0.535 rows=260 loops=2)
+                                                              Hash Cond: (g.borough_id = b.borough_id)
+                                                              ->  Seq Scan on nyc_geometry g  (cost=0.00..130.60 rows=260 width=23) (actual time=0.030..0.252 rows=260 loops=2)
+                                                              ->  Hash  (cost=1.05..1.05 rows=5 width=4) (actual time=0.033..0.042 rows=6 loops=2)
+                                                                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                                                    ->  Seq Scan on borough_lut b  (cost=0.00..1.05 rows=5 width=4) (actual time=0.019..0.021 rows=6 loops=2)
+  ->  Subquery Scan on t  (cost=27521980.91..27521988.69 rows=1 width=12) (actual time=346047.231..346047.262 rows=1 loops=1)
+        Filter: (t.location_id = 3)
+        Rows Removed by Filter: 258
+        ->  WindowAgg  (cost=27521980.91..27521985.44 rows=260 width=20) (actual time=346047.120..346047.242 rows=259 loops=1)
+              ->  Sort  (cost=27521980.89..27521981.54 rows=260 width=12) (actual time=346046.696..346046.720 rows=259 loops=1)
+                    Sort Key: (count(*)) DESC
+                    Sort Method: quicksort  Memory: 33kB
+                    ->  HashAggregate  (cost=27521967.87..27521970.47 rows=260 width=12) (actual time=346036.698..346036.745 rows=259 loops=1)
+                          Group Key: g_1.location_id
+                          Batches: 1  Memory Usage: 61kB
+                          ->  Nested Loop  (cost=0.00..27462083.25 rows=11976923 width=4) (actual time=7.743..342746.669 rows=11627500 loops=1)
+                                Join Filter: ((t_1.pu_location_id = g_1.location_id) OR (t_1.do_location_id = g_1.location_id))
+                                Rows Removed by Join Filter: 1548372500
+                                ->  Seq Scan on taxi t_1  (cost=0.00..161952.00 rows=6000000 width=8) (actual time=6.277..61103.336 rows=6000000 loops=1)
+                                ->  Materialize  (cost=0.00..131.90 rows=260 width=4) (actual time=0.000..0.018 rows=260 loops=6000000)
+                                      ->  Seq Scan on nyc_geometry g_1  (cost=0.00..130.60 rows=260 width=4) (actual time=0.016..0.230 rows=260 loops=1)
+Planning Time: 39.149 ms
+Execution Time: 350216.056 ms
 
 
 ---
@@ -79,10 +181,20 @@ FROM nyc_geometry g
 JOIN borough_lut b ON g.borough_id = b.borough_id;
 
 
+Hash Join  (cost=1.11..132.87 rows=217 width=104) (actual time=0.109..66.825 rows=260 loops=1)
+  Hash Cond: (g.borough_id = b.borough_id)
+  ->  Seq Scan on nyc_geometry g  (cost=0.00..130.60 rows=260 width=76) (actual time=0.045..65.773 rows=260 loops=1)
+  ->  Hash  (cost=1.05..1.05 rows=5 width=36) (actual time=0.029..0.032 rows=6 loops=1)
+        Buckets: 1024  Batches: 1  Memory Usage: 9kB
+        ->  Seq Scan on borough_lut b  (cost=0.00..1.05 rows=5 width=36) (actual time=0.019..0.021 rows=6 loops=1)
+Planning Time: 432.542 ms
+Execution Time: 89.027 ms
+
+
 ---
 
 Query 6: /api/location/nyc_geometry_map
-> No direct SQL output — result is transformed into GeoJSON using parseWKTPolygon() in JS.
+> No  shown — data processed via JS in `parseWKTPolygon()`.
 
 ---
 
@@ -101,6 +213,17 @@ WHERE crash_date IS NOT NULL
 GROUP BY season
 ORDER BY collision_count DESC;
 
+Sort  (cost=4756.71..4757.50 rows=318 width=40) (actual time=1074.286..1074.296 rows=4 loops=1)
+  Sort Key: (count(*)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  ->  HashAggregate  (cost=4732.36..4743.49 rows=318 width=40) (actual time=1073.551..1073.559 rows=4 loops=1)
+"        Group Key: CASE WHEN (EXTRACT(month FROM crash_date) = ANY ('{12,1,2}'::numeric[])) THEN 'Winter'::text WHEN (EXTRACT(month FROM crash_date) = ANY ('{3,4,5}'::numeric[])) THEN 'Spring'::text WHEN (EXTRACT(month FROM crash_date) = ANY ('{6,7,8}'::numeric[])) THEN 'Summer'::text WHEN (EXTRACT(month FROM crash_date) = ANY ('{9,10,11}'::numeric[])) THEN 'Fall'::text ELSE NULL::text END"
+        Batches: 1  Memory Usage: 37kB
+        ->  Seq Scan on collision  (cost=0.00..4410.69 rows=64334 width=32) (actual time=62.388..1053.603 rows=64334 loops=1)
+              Filter: (crash_date IS NOT NULL)
+Planning Time: 150.403 ms
+Execution Time: 1105.223 ms
+
 
 ---
 
@@ -111,19 +234,45 @@ WITH collisions_count AS (
   FROM collision c
   JOIN borough_lut b ON c.borough_id = b.borough_id
   JOIN nyc_geometry g ON g.borough_id = b.borough_id
-  WHERE c.crash_date BETWEEN $1 AND $2
-    AND g.location_id = $3
+  WHERE c.crash_date BETWEEN '2024-01-01' AND '2024-12-31'
+    AND g.location_id = 3
 ),
 taxi_count AS (
   SELECT COUNT(*) AS taxi_rides
   FROM taxi t
   JOIN nyc_geometry g ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
-  WHERE t.tpep_pickup_datetime BETWEEN $1 AND $2
-    AND g.location_id = $3
+  WHERE t.tpep_pickup_datetime BETWEEN '2024-01-01' AND '2024-12-31'
+    AND g.location_id = 3
 )
 SELECT (c.collisions * 1000.0 / NULLIF(t.taxi_rides, 0)) AS collision_rate
 FROM collisions_count c, taxi_count t;
 
+Nested Loop  (cost=284480.58..284480.62 rows=1 width=32) (actual time=33667.547..33674.395 rows=1 loops=1)
+  ->  Aggregate  (cost=3501.22..3501.23 rows=1 width=8) (actual time=1311.080..1317.921 rows=1 loops=1)
+        ->  Hash Join  (cost=9.29..3473.02 rows=11277 width=0) (actual time=39.731..1317.148 rows=7482 loops=1)
+              Hash Cond: (c.borough_id = b.borough_id)
+              ->  Seq Scan on collision c  (cost=0.00..3124.01 rows=64326 width=4) (actual time=32.041..1299.025 rows=64334 loops=1)
+                    Filter: ((crash_date >= '2024-01-01 00:00:00'::timestamp without time zone) AND (crash_date <= '2024-12-31 00:00:00'::timestamp without time zone))
+              ->  Hash  (cost=9.28..9.28 rows=1 width=8) (actual time=7.648..7.656 rows=1 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    ->  Nested Loop  (cost=0.15..9.28 rows=1 width=8) (actual time=7.628..7.635 rows=1 loops=1)
+                          Join Filter: (b.borough_id = g.borough_id)
+                          Rows Removed by Join Filter: 3
+                          ->  Index Scan using nyc_geometry_merged_pkey on nyc_geometry g  (cost=0.15..8.17 rows=1 width=4) (actual time=6.484..6.486 rows=1 loops=1)
+                                Index Cond: (location_id = 3)
+                          ->  Seq Scan on borough_lut b  (cost=0.00..1.05 rows=5 width=4) (actual time=1.135..1.136 rows=4 loops=1)
+  ->  Aggregate  (cost=280979.36..280979.37 rows=1 width=8) (actual time=32350.702..32350.703 rows=1 loops=1)
+        ->  Nested Loop  (cost=0.15..280865.60 rows=45505 width=0) (actual time=8.869..32349.520 rows=731 loops=1)
+              Join Filter: ((t.pu_location_id = g_1.location_id) OR (t.do_location_id = g_1.location_id))
+              Rows Removed by Join Filter: 5987129
+              ->  Index Only Scan using nyc_geometry_merged_pkey on nyc_geometry g_1  (cost=0.15..8.17 rows=1 width=4) (actual time=1.470..2.266 rows=1 loops=1)
+                    Index Cond: (location_id = 3)
+                    Heap Fetches: 1
+              ->  Seq Scan on taxi t  (cost=0.00..191952.00 rows=5927029 width=8) (actual time=0.068..30602.110 rows=5987860 loops=1)
+                    Filter: ((tpep_pickup_datetime >= '2024-01-01 00:00:00'::timestamp without time zone) AND (tpep_pickup_datetime <= '2024-12-31 00:00:00'::timestamp without time zone))
+                    Rows Removed by Filter: 12140
+Planning Time: 85.085 ms
+Execution Time: 33685.236 ms
 
 ---
 
@@ -139,6 +288,18 @@ GROUP BY date, hour
 HAVING COUNT(*) > 1
 ORDER BY collision_count DESC;
 
+Sort  (cost=4148.67..4154.03 rows=2144 width=44) (actual time=1213.157..1214.587 rows=6843 loops=1)
+  Sort Key: (count(*)) DESC
+  Sort Method: quicksort  Memory: 458kB
+  ->  HashAggregate  (cost=3928.19..4030.04 rows=2144 width=44) (actual time=1202.109..1203.793 rows=6843 loops=1)
+"        Group Key: date(crash_date), EXTRACT(hour FROM (crash_time)::time without time zone)"
+        Filter: (count(*) > 1)
+        Batches: 1  Memory Usage: 913kB
+        Rows Removed by Filter: 404
+        ->  Seq Scan on collision  (cost=0.00..3445.68 rows=64334 width=36) (actual time=34.026..1169.000 rows=64334 loops=1)
+              Filter: ((crash_date IS NOT NULL) AND (crash_time IS NOT NULL))
+Planning Time: 61.779 ms
+Execution Time: 1236.601 ms
 
 ---
 
@@ -153,9 +314,18 @@ SELECT
   number_of_persons_injured,
   number_of_persons_killed
 FROM collision
-WHERE crash_date BETWEEN $1 AND $2
+WHERE crash_date BETWEEN '2024-01-01' AND '2024-12-31'
 ORDER BY crash_date ASC
-LIMIT $3 OFFSET $4;
+LIMIT 10 OFFSET 0;
+
+Limit  (cost=4514.07..4514.10 rows=10 width=40) (actual time=1036.503..1044.504 rows=10 loops=1)
+  ->  Sort  (cost=4514.07..4674.89 rows=64326 width=40) (actual time=1033.944..1037.945 rows=10 loops=1)
+        Sort Key: crash_date
+        Sort Method: top-N heapsort  Memory: 25kB
+        ->  Seq Scan on collision  (cost=0.00..3124.01 rows=64326 width=40) (actual time=1.773..998.748 rows=64334 loops=1)
+              Filter: ((crash_date >= '2024-01-01 00:00:00'::timestamp without time zone) AND (crash_date <= '2024-12-31 00:00:00'::timestamp without time zone))
+Planning Time: 151.178 ms
+Execution Time: 1070.520 ms
 
 
 ---
@@ -170,10 +340,31 @@ GROUP BY g.zone, b.borough, hour
 ORDER BY activity_count DESC
 LIMIT 10;
 
+Limit  (cost=1172782.52..1172782.55 rows=10 width=87) (actual time=44835.571..44839.626 rows=10 loops=1)
+  ->  Sort  (cost=1172782.52..1185282.52 rows=5000000 width=87) (actual time=44835.563..44835.576 rows=10 loops=1)
+        Sort Key: (count(*)) DESC
+        Sort Method: top-N heapsort  Memory: 26kB
+        ->  HashAggregate  (cost=875281.19..1064734.32 rows=5000000 width=87) (actual time=44829.752..44833.821 rows=5688 loops=1)
+"              Group Key: g.zone, b.borough, EXTRACT(hour FROM t.tpep_pickup_datetime)"
+              Planned Partitions: 128  Batches: 1  Memory Usage: 1553kB
+              ->  Hash Join  (cost=134.96..217468.69 rows=5000000 width=79) (actual time=39.832..31785.927 rows=5978319 loops=1)
+                    Hash Cond: (g.borough_id = b.borough_id)
+                    ->  Hash Join  (cost=133.85..178092.58 rows=6000000 width=27) (actual time=20.257..26394.475 rows=5978319 loops=1)
+                          Hash Cond: (t.pu_location_id = g.location_id)
+                          ->  Seq Scan on taxi t  (cost=0.00..161952.00 rows=6000000 width=12) (actual time=0.139..21935.420 rows=6000000 loops=1)
+                          ->  Hash  (cost=130.60..130.60 rows=260 width=23) (actual time=20.082..20.088 rows=260 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 23kB
+                                ->  Seq Scan on nyc_geometry g  (cost=0.00..130.60 rows=260 width=23) (actual time=0.009..20.003 rows=260 loops=1)
+                    ->  Hash  (cost=1.05..1.05 rows=5 width=36) (actual time=17.285..17.286 rows=6 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          ->  Seq Scan on borough_lut b  (cost=0.00..1.05 rows=5 width=36) (actual time=17.260..17.262 rows=6 loops=1)
+Planning Time: 162.340 ms
+Execution Time: 44858.525 ms
+
 
 ---
 
-Query 12: /api/area/tipAnalysis
+Query 12: /api/area/tipAnalysis (COMPLEX)
 
 WITH tip_stats AS (
   SELECT
@@ -202,9 +393,31 @@ FROM outlier_rides
 ORDER BY tip_amount DESC;
 
 
+Sort  (cost=1116074.34..1123018.79 rows=2777778 width=78) (actual time=20250.099..20404.219 rows=351630 loops=1)
+  Sort Key: t.tip_amount DESC
+  Sort Method: external merge  Disk: 24256kB
+  ->  Nested Loop  (cost=192086.97..571920.71 rows=2777778 width=78) (actual time=11311.647..19872.542 rows=351630 loops=1)
+        Join Filter: (((t.tip_amount)::double precision < ((percentile_cont('0.25'::double precision) WITHIN GROUP (ORDER BY ((taxi.tip_amount)::double precision))) - ('1.5'::double precision * ((percentile_cont('0.75'::double precision) WITHIN GROUP (ORDER BY ((taxi.tip_amount)::double precision))) - (percentile_cont('0.25'::double precision) WITHIN GROUP (ORDER BY ((taxi.tip_amount)::double precision))))))) OR ((t.tip_amount)::double precision > ((percentile_cont('0.75'::double precision) WITHIN GROUP (ORDER BY ((taxi.tip_amount)::double precision))) + ('1.5'::double precision * ((percentile_cont('0.75'::double precision) WITHIN GROUP (ORDER BY ((taxi.tip_amount)::double precision))) - (percentile_cont('0.25'::double precision) WITHIN GROUP (ORDER BY ((taxi.tip_amount)::double precision))))))))
+        Rows Removed by Join Filter: 5626689
+        ->  Aggregate  (cost=191952.01..191952.02 rows=1 width=16) (actual time=11301.173..11301.191 rows=1 loops=1)
+              ->  Seq Scan on taxi  (cost=0.00..161952.00 rows=6000000 width=5) (actual time=1.321..4297.240 rows=6000000 loops=1)
+        ->  Hash Join  (cost=134.96..204968.69 rows=5000000 width=78) (actual time=8.198..5588.589 rows=5978319 loops=1)
+              Hash Cond: (g.borough_id = b.borough_id)
+              ->  Hash Join  (cost=133.85..178092.58 rows=6000000 width=50) (actual time=7.008..4409.261 rows=5978319 loops=1)
+                    Hash Cond: (t.pu_location_id = g.location_id)
+                    ->  Seq Scan on taxi t  (cost=0.00..161952.00 rows=6000000 width=35) (actual time=1.219..2198.325 rows=6000000 loops=1)
+                    ->  Hash  (cost=130.60..130.60 rows=260 width=23) (actual time=5.768..5.769 rows=260 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 23kB
+                          ->  Seq Scan on nyc_geometry g  (cost=0.00..130.60 rows=260 width=23) (actual time=0.009..5.708 rows=260 loops=1)
+              ->  Hash  (cost=1.05..1.05 rows=5 width=36) (actual time=1.159..1.160 rows=6 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    ->  Seq Scan on borough_lut b  (cost=0.00..1.05 rows=5 width=36) (actual time=1.145..1.147 rows=6 loops=1)
+Planning Time: 7.943 ms
+Execution Time: 20425.057 ms
+
 ---
 
-Query 13: /api/area/collisionHotspots
+Query 13: /api/area/collisionHotspots (COMPLEX)
 
 WITH taxi_activity AS (
   SELECT g.location_id, COUNT(t.*) AS pickup_count
@@ -220,37 +433,126 @@ LEFT JOIN taxi_activity ta ON g.location_id = ta.location_id
 GROUP BY g.zone, b.borough, ta.pickup_count
 HAVING COUNT(c.*) > 10 AND COALESCE(ta.pickup_count, 0) < 10
 ORDER BY collision_count DESC, pickup_count ASC;
+
+
+Sort  (cost=458411.25..458627.91 rows=86667 width=71) (actual time=32935.695..32935.717 rows=13 loops=1)
+"  Sort Key: (count(c.*)) DESC, (COALESCE(ta.pickup_count, '0'::bigint))"
+  Sort Method: quicksort  Memory: 25kB
+  ->  HashAggregate  (cost=404662.60..447747.17 rows=86667 width=71) (actual time=32934.825..32934.984 rows=13 loops=1)
+"        Group Key: g.zone, b.borough, ta.pickup_count"
+        Filter: (count(c.*) > 10)
+        Planned Partitions: 16  Batches: 1  Memory Usage: 793kB
+        ->  Hash Right Join  (cost=208238.32..220849.96 rows=815812 width=174) (actual time=32164.008..32874.743 rows=50476 loops=1)
+              Hash Cond: (c.borough_id = g.borough_id)
+              ->  Seq Scan on collision c  (cost=0.00..2802.34 rows=64334 width=123) (actual time=0.602..698.209 rows=64334 loops=1)
+              ->  Hash  (cost=208237.42..208237.42 rows=72 width=59) (actual time=32163.375..32163.392 rows=13 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 10kB
+                    ->  Merge Join  (cost=208236.24..208237.42 rows=72 width=59) (actual time=32163.358..32163.378 rows=13 loops=1)
+                          Merge Cond: (g.borough_id = b.borough_id)
+                          ->  Sort  (cost=208235.13..208235.35 rows=87 width=27) (actual time=32155.044..32155.059 rows=13 loops=1)
+                                Sort Key: g.borough_id
+                                Sort Method: quicksort  Memory: 25kB
+                                ->  Hash Left Join  (cost=208101.03..208232.33 rows=87 width=27) (actual time=32153.884..32154.316 rows=13 loops=1)
+                                      Hash Cond: (g.location_id = ta.location_id)
+"                                      Filter: (COALESCE(ta.pickup_count, '0'::bigint) < 10)"
+                                      Rows Removed by Filter: 247
+                                      ->  Seq Scan on nyc_geometry g  (cost=0.00..130.60 rows=260 width=23) (actual time=0.008..0.368 rows=260 loops=1)
+                                      ->  Hash  (cost=208097.78..208097.78 rows=260 width=12) (actual time=32153.843..32153.855 rows=260 loops=1)
+                                            Buckets: 1024  Batches: 1  Memory Usage: 20kB
+                                            ->  Subquery Scan on ta  (cost=208092.58..208097.78 rows=260 width=12) (actual time=32152.911..32152.988 rows=260 loops=1)
+                                                  ->  HashAggregate  (cost=208092.58..208095.18 rows=260 width=12) (actual time=32152.447..32152.496 rows=260 loops=1)
+                                                        Group Key: g_1.location_id
+                                                        Batches: 1  Memory Usage: 61kB
+                                                        ->  Hash Right Join  (cost=133.85..178092.58 rows=6000000 width=122) (actual time=3.436..30959.763 rows=5978322 loops=1)
+                                                              Hash Cond: (t.pu_location_id = g_1.location_id)
+                                                              ->  Seq Scan on taxi t  (cost=0.00..161952.00 rows=6000000 width=122) (actual time=0.033..29568.284 rows=6000000 loops=1)
+                                                              ->  Hash  (cost=130.60..130.60 rows=260 width=4) (actual time=3.383..3.387 rows=260 loops=1)
+                                                                    Buckets: 1024  Batches: 1  Memory Usage: 18kB
+                                                                    ->  Seq Scan on nyc_geometry g_1  (cost=0.00..130.60 rows=260 width=4) (actual time=0.003..3.336 rows=260 loops=1)
+                          ->  Sort  (cost=1.11..1.12 rows=5 width=36) (actual time=7.804..7.805 rows=5 loops=1)
+                                Sort Key: b.borough_id
+                                Sort Method: quicksort  Memory: 25kB
+                                ->  Seq Scan on borough_lut b  (cost=0.00..1.05 rows=5 width=36) (actual time=5.602..5.603 rows=6 loops=1)
+Planning Time: 87.667 ms
+Execution Time: 32939.858 ms
+
+
 ---
 
-Query 14: /api/area/proximityAnalysis
+Query 14: /api/area/proximityAnalysis (COMPLEX)
 
 WITH collision_points AS (
-        SELECT
-          c.collision_id,
-          c.crash_date,
-          ST_Transform(ST_SetSRID(ST_MakePoint(c.longitude, c.latitude), 4326), 2263) AS geom
-        FROM collision c
-        WHERE c.longitude IS NOT NULL AND c.latitude IS NOT NULL AND c.crash_date IS NOT NULL
-      ),
-      taxi_geom AS (
-        SELECT
-          t.trip_id,
-          t.trip_distance,
-          t.tpep_pickup_datetime::date AS pickup_date,
-          ST_Transform(g.geometry, 2263) AS pu_geom
-        FROM taxi t
-        JOIN nyc_geometry g ON t.pu_location_id = g.location_id
-        WHERE t.tpep_pickup_datetime IS NOT NULL
-      )
-      SELECT
-        c.collision_id,
-        COUNT(*) AS nearby_taxi_count
-      FROM collision_points c
-      JOIN taxi_geom t ON c.crash_date = t.pickup_date
-      WHERE ST_DWithin(c.geom, t.pu_geom, 5000)
-      GROUP BY c.collision_id
-      LIMIT 3
-      
+  SELECT
+    c.collision_id,
+    c.crash_date,
+    ST_Transform(ST_SetSRID(ST_MakePoint(c.longitude, c.latitude), 4326), 2263) AS geom
+  FROM collision c
+  WHERE c.longitude IS NOT NULL AND c.latitude IS NOT NULL AND c.crash_date IS NOT NULL
+),
+taxi_geom AS (
+  SELECT
+    t.trip_id,
+    t.trip_distance,
+    t.tpep_pickup_datetime::date AS pickup_date,
+    ST_Transform(g.geometry, 2263) AS pu_geom
+  FROM taxi t
+  JOIN nyc_geometry g ON t.pu_location_id = g.location_id
+  WHERE t.tpep_pickup_datetime IS NOT NULL
+)
+SELECT
+  c.collision_id,
+  COUNT(*) AS nearby_taxi_count
+FROM collision_points c
+JOIN taxi_geom t ON c.crash_date = t.pickup_date
+WHERE ST_DWithin(c.geom, t.pu_geom, 5000)
+GROUP BY c.collision_id
+LIMIT 3;
+
+
+Limit  (cost=147932.88..147934.06 rows=10 width=12) (actual time=60131.899..60151.906 rows=10 loops=1)
+  ->  Finalize GroupAggregate  (cost=147932.88..147947.27 rows=122 width=12) (actual time=60127.989..60147.989 rows=10 loops=1)
+        Group Key: c.collision_id
+        ->  Gather Merge  (cost=147932.88..147945.54 rows=102 width=12) (actual time=60127.959..60147.960 rows=29 loops=1)
+              Workers Planned: 2
+              Workers Launched: 2
+              ->  Partial GroupAggregate  (cost=146932.85..146933.74 rows=51 width=12) (actual time=57680.292..57688.472 rows=151 loops=3)
+                    Group Key: c.collision_id
+                    ->  Sort  (cost=146932.85..146932.98 rows=51 width=4) (actual time=57678.917..57682.612 rows=23305 loops=3)
+                          Sort Key: c.collision_id
+                          Sort Method: quicksort  Memory: 1537kB
+                          Worker 0:  Sort Method: quicksort  Memory: 1537kB
+                          Worker 1:  Sort Method: quicksort  Memory: 1537kB
+                          ->  Hash Join  (cost=145624.47..146931.40 rows=51 width=4) (actual time=12368.779..57659.072 rows=33755 loops=3)
+                                Hash Cond: (t.pu_location_id = g.location_id)
+"                                Join Filter: st_dwithin(st_transform(st_setsrid(st_makepoint((c.longitude)::double precision, (c.latitude)::double precision), 4326), 2263), st_transform(g.geometry, 2263), '5000'::double precision)"
+                                Rows Removed by Join Filter: 1473897
+                                ->  Merge Join  (cost=145490.62..146664.32 rows=50755 width=24) (actual time=7778.227..9577.343 rows=1513720 loops=3)
+                                      Merge Cond: (((t.tpep_pickup_datetime)::date) = c.crash_date)
+                                      ->  Sort  (cost=142348.10..142443.27 rows=38066 width=12) (actual time=7712.001..7714.721 rows=6154 loops=3)
+                                            Sort Key: ((t.tpep_pickup_datetime)::date)
+                                            Sort Method: quicksort  Memory: 2887kB
+                                            Worker 0:  Sort Method: quicksort  Memory: 2939kB
+                                            Worker 1:  Sort Method: quicksort  Memory: 2910kB
+                                            ->  Parallel Seq Scan on taxi t  (cost=0.00..139452.00 rows=38066 width=12) (actual time=2133.831..7695.460 rows=35207 loops=3)
+                                                  Filter: ((tpep_pickup_datetime >= '2024-06-01 00:00:00'::timestamp without time zone) AND (tpep_pickup_datetime <= '2024-06-07 00:00:00'::timestamp without time zone))
+                                                  Rows Removed by Filter: 1964793
+                                      ->  Sort  (cost=3142.51..3143.57 rows=424 width=28) (actual time=65.059..500.345 rows=1507568 loops=3)
+                                            Sort Key: c.crash_date
+                                            Sort Method: quicksort  Memory: 38kB
+                                            Worker 0:  Sort Method: quicksort  Memory: 38kB
+                                            Worker 1:  Sort Method: quicksort  Memory: 38kB
+                                            ->  Seq Scan on collision c  (cost=0.00..3124.01 rows=424 width=28) (actual time=15.854..44.684 rows=246 loops=3)
+                                                  Filter: ((longitude IS NOT NULL) AND (latitude IS NOT NULL) AND (crash_date >= '2024-06-01 00:00:00'::timestamp without time zone) AND (crash_date <= '2024-06-01 00:00:00'::timestamp without time zone))
+                                                  Rows Removed by Filter: 64088
+                                ->  Hash  (cost=130.60..130.60 rows=260 width=6077) (actual time=2.185..2.186 rows=260 loops=3)
+                                      Buckets: 1024  Batches: 1  Memory Usage: 547kB
+                                      ->  Seq Scan on nyc_geometry g  (cost=0.00..130.60 rows=260 width=6077) (actual time=0.027..0.276 rows=260 loops=3)
+Planning Time: 35.828 ms
+Execution Time: 60168.038 ms
+
+
+
+
 ---
 
 Query 15: /api/safety/weeklyCollisions
@@ -262,7 +564,33 @@ SELECT
 FROM collision c
 JOIN borough_lut b ON c.borough_id = b.borough_id
 JOIN nyc_geometry g ON g.location_id = c.location_id
-WHERE b.borough = $1
-  AND c.crash_date BETWEEN $2 AND $3
+WHERE b.borough = 'Manhattan'
+  AND c.crash_date BETWEEN '2024-01-01' AND '2024-12-31'
 GROUP BY g.location_id, g.zone
 ORDER BY collision_count DESC;
+
+Sort  (cost=3649.04..3649.69 rows=260 width=27) (actual time=485.177..485.193 rows=64 loops=1)
+  Sort Key: (count(*)) DESC
+  Sort Method: quicksort  Memory: 28kB
+  ->  HashAggregate  (cost=3636.01..3638.61 rows=260 width=27) (actual time=484.386..484.408 rows=64 loops=1)
+        Group Key: g.location_id
+        Batches: 1  Memory Usage: 37kB
+        ->  Hash Join  (cost=134.92..3571.69 rows=12865 width=19) (actual time=31.093..481.402 rows=8870 loops=1)
+              Hash Cond: (c.location_id = g.location_id)
+              ->  Hash Join  (cost=1.07..3403.52 rows=12865 width=4) (actual time=3.159..451.234 rows=8939 loops=1)
+                    Hash Cond: (c.borough_id = b.borough_id)
+                    ->  Seq Scan on collision c  (cost=0.00..3124.01 rows=64326 width=8) (actual time=0.018..442.887 rows=64334 loops=1)
+                          Filter: ((crash_date >= '2024-01-01 00:00:00'::timestamp without time zone) AND (crash_date <= '2024-12-31 00:00:00'::timestamp without time zone))
+                    ->  Hash  (cost=1.06..1.06 rows=1 width=4) (actual time=3.130..3.136 rows=1 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          ->  Seq Scan on borough_lut b  (cost=0.00..1.06 rows=1 width=4) (actual time=3.124..3.125 rows=1 loops=1)
+                                Filter: (borough = 'Manhattan'::text)
+                                Rows Removed by Filter: 5
+              ->  Hash  (cost=130.60..130.60 rows=260 width=19) (actual time=27.923..27.923 rows=260 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 22kB
+                    ->  Seq Scan on nyc_geometry g  (cost=0.00..130.60 rows=260 width=19) (actual time=0.008..27.837 rows=260 loops=1)
+Planning Time: 8.507 ms
+Execution Time: 490.724 ms
+
+
+---

@@ -8,7 +8,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  TextField,
+  Box,
+  Button
 } from '@mui/material';
 
 const config = require('../config.json');
@@ -17,37 +20,27 @@ export default function TopStatsPage() {
   const [tipOutliers, setTipOutliers] = useState([]);
   const [collisionHotspots, setCollisionHotspots] = useState([]);
   const [proximityStats, setProximityStats] = useState([]);
+  const [date, setDate] = useState('2024-06-01');
 
-  useEffect(() => {
-    const tipUrl = `http://${config.server_host}:${config.server_port}/area/tip_analysis`;
-    console.log("Fetching Tip Analysis from:", tipUrl);
-    fetch(tipUrl)
+  const fetchProximity = () => {
+    const url = `http://${config.server_host}:${config.server_port}/collision/proximity_analysis?date=${date}`;
+    fetch(url)
       .then(res => res.json())
-      .then(resJson => Array.isArray(resJson) ? setTipOutliers(resJson) : setTipOutliers([]))
+      .then(data => setProximityStats(Array.isArray(data) ? data : []))
       .catch(err => {
-        console.error("Tip Analysis Error:", err);
-        setTipOutliers([]);
-      });
-
-    const hotspotsUrl = `http://${config.server_host}:${config.server_port}/area/collision_hotspots`;
-    console.log("Fetching Collision Hotspots from:", hotspotsUrl);
-    fetch(hotspotsUrl)
-      .then(res => res.json())
-      .then(resJson => Array.isArray(resJson) ? setCollisionHotspots(resJson) : setCollisionHotspots([]))
-      .catch(err => {
-        console.error("Collision Hotspots Error:", err);
-        setCollisionHotspots([]);
-      });
-
-    const proximityUrl = `http://${config.server_host}:${config.server_port}/collision/proximity_analysis`;
-    console.log("Fetching Collision Proximity Analysis from:", proximityUrl);
-    fetch(proximityUrl)
-      .then(res => res.json())
-      .then(resJson => Array.isArray(resJson) ? setProximityStats(resJson) : setProximityStats([]))
-      .catch(err => {
-        console.error("Proximity Analysis Error:", err);
+        console.error("Error fetching proximity data:", err);
         setProximityStats([]);
       });
+  };
+
+  useEffect(() => {
+    fetch(`http://${config.server_host}:${config.server_port}/area/tip_analysis`)
+      .then(res => res.json())
+      .then(data => setTipOutliers(Array.isArray(data) ? data : []));
+
+    fetch(`http://${config.server_host}:${config.server_port}/area/collision_hotspots`)
+      .then(res => res.json())
+      .then(data => setCollisionHotspots(Array.isArray(data) ? data : []));
   }, []);
 
   return (
@@ -110,8 +103,21 @@ export default function TopStatsPage() {
         </Table>
       </TableContainer>
 
-      {/* Collision Proximity Analysis */}
+      {/* Proximity Analysis by Date */}
       <Typography variant="h5" gutterBottom>📍 Collisions Near Taxi Pickups (within 5km)</Typography>
+      <Box display="flex" gap={2} alignItems="center" mb={2}>
+        <TextField
+          label="Pick a Date"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          inputProps={{ min: '2024-01-01', max: '2024-12-31' }}
+          InputLabelProps={{ shrink: true }}
+        />
+        <Button variant="contained" onClick={fetchProximity}>
+          Search
+        </Button>
+      </Box>
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>

@@ -95,6 +95,12 @@ const collisionHotspots = async function (req, res) {
 const proximityAnalysis = async function (req, res) {
   const client = await connection.connect();
   try {
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ error: 'Missing required query parameter: date' });
+    }
+
     const result = await client.query(`
       WITH collision_points AS (
         SELECT
@@ -102,7 +108,7 @@ const proximityAnalysis = async function (req, res) {
           c.crash_date,
           ST_Transform(ST_SetSRID(ST_MakePoint(c.longitude, c.latitude), 4326), 2263) AS geom
         FROM collision c
-        WHERE c.longitude IS NOT NULL AND c.latitude IS NOT NULL AND c.crash_date IS NOT NULL
+        WHERE c.longitude IS NOT NULL AND c.latitude IS NOT NULL AND c.crash_date = $1
       ),
       taxi_geom AS (
         SELECT
@@ -112,7 +118,7 @@ const proximityAnalysis = async function (req, res) {
           ST_Transform(g.geometry, 2263) AS pu_geom
         FROM taxi t
         JOIN nyc_geometry g ON t.pu_location_id = g.location_id
-        WHERE t.tpep_pickup_datetime IS NOT NULL
+        WHERE t.tpep_pickup_datetime::date = $1
       )
       SELECT
         c.collision_id,
@@ -121,8 +127,9 @@ const proximityAnalysis = async function (req, res) {
       JOIN taxi_geom t ON c.crash_date = t.pickup_date
       WHERE ST_DWithin(c.geom, t.pu_geom, 5000)
       GROUP BY c.collision_id
-      LIMIT 3
-    `);
+      LIMIT 3;
+    `, [date]);
+
     res.json(result.rows);
   } catch (error) {
     console.error('Error analyzing collision and taxi proximity:', error);
@@ -131,6 +138,7 @@ const proximityAnalysis = async function (req, res) {
     client.release(); 
   }
 };
+
 
 
 

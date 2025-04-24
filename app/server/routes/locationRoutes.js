@@ -157,7 +157,7 @@ const getNYCGeometry = async function (req, res) {
             FROM nyc_geometry g
             JOIN borough_lut b ON g.borough_id = b.borough_id
         `);
-        console.log("sending geometry")
+        console.log("SEND: nyc geometry")
         res.json(result.rows);
     } catch (err) {
         console.error('Error retrieving NYC geometry data:', err);
