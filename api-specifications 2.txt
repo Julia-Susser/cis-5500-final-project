@@ -1,0 +1,150 @@
+API Specifications:
+
+1. /api/location/:location_id/pickupsDropoffs
+   - Description: Retrieves the total number of pickups and drop-offs for a specific location.
+   - Request Path: /api/location/:location_id/pickupsDropoffs
+   - Request Method: GET
+   - Request Parameters:
+     - Path Parameter:
+       - location_id (type: integer, required): The ID of the location.
+   - Query Parameters in SQL:
+     - $1: The location_id passed as a path parameter.
+   - Response Structure:
+     - total_pickups: Total number of pickups in the location.
+     - total_dropoffs: Total number of drop-offs in the location.
+
+2. /api/location/:location_id/collisionsInjuries
+   - Description: Retrieves the number of collisions and injuries for a specific location.
+   - Request Path: /api/location/:location_id/collisionsInjuries
+   - Request Method: GET
+   - Request Parameters:
+     - Path Parameter:
+       - location_id (type: integer, required): The ID of the location.
+   - Query Parameters in SQL:
+     - $1: The location_id passed as a path parameter.
+   - Response Structure:
+     - collisions: Total number of collisions in the location.
+     - injuries: Total number of injuries in the location.
+
+3. /api/location/:location_id/fareTripDistance
+   - Description: Retrieves the average fare and trip distance for a specific location.
+   - Request Path: /api/location/:location_id/fareTripDistance
+   - Request Method: GET
+   - Request Parameters:
+     - Path Parameter:
+       - location_id (type: integer, required): The ID of the location.
+   - Query Parameters in SQL:
+     - $1: The location_id passed as a path parameter.
+   - Response Structure:
+     - average_fare: Average fare for trips in the location.
+     - average_trip_distance: Average trip distance for trips in the location.
+
+4. /api/location/:location_id/safetyRanking
+   - Description: Retrieves the safety ranking for a specific location.
+   - Request Path: /api/location/:location_id/safetyRanking
+   - Request Method: GET
+   - Request Parameters:
+     - Path Parameter:
+       - location_id (type: integer, required): The ID of the location.
+   - Query Parameters in SQL:
+     - $1: The location_id passed as a path parameter.
+   - Response Structure:
+     - safety_ranking: Safety ranking of the location.
+
+5. /api/location/validLocations
+   - Description: Retrieves a list of valid locations.
+   - Request Path: /api/location/validLocations
+   - Request Method: GET
+   - Response Structure:
+     - locations: Array of valid location IDs.
+
+6. /api/location/geometry
+   - Description: Retrieves the geometry of NYC locations.
+   - Request Path: /api/location/geometry
+   - Request Method: GET
+   - Response Structure:
+     - geometry: GeoJSON data for NYC locations.
+
+7. /api/location/geometryMap
+   - Description: Retrieves a map of NYC geometry.
+   - Request Path: /api/location/geometryMap
+   - Request Method: GET
+   - Response Structure:
+     - map: Map data for NYC geometry.
+
+8. /api/time/safetyBySeason
+   - Description: Retrieves safety data by season.
+   - Request Path: /api/time/safetyBySeason
+   - Request Method: GET
+   - Response Structure:
+     - season_data: Safety data categorized by season.
+
+9. /api/time/collisionRate
+   - Description: Retrieves the collision rate for a specific time period.
+   - Request Path: /api/time/collisionRate
+   - Request Method: GET
+   - Response Structure:
+     - collision_rate: Collision rate for the specified time period.
+
+10. /api/time/sameCollisionDateHours
+    - Description: Retrieves collisions that occurred on the same date and hour.
+    - Request Path: /api/time/sameCollisionDateHours
+    - Request Method: GET
+    - Response Structure:
+      - collisions: Array of collisions with the same date and hour.
+
+11. /api/time/collisionsInDateRange
+    - Description: Retrieves collisions within a specific date range.
+    - Request Path: /api/time/collisionsInDateRange
+    - Request Method: GET
+    - Request Parameters:
+      - Query Parameters:
+        - start_date (type: string, required): Start date of the range.
+        - end_date (type: string, required): End date of the range.
+    - Response Structure:
+      - collisions: Array of collisions within the date range.
+
+12. /api/area/peakHoursAnalysis
+    - Description: Retrieves analysis of peak hours for a specific area.
+    - Request Path: /api/area/peakHoursAnalysis
+    - Request Method: GET
+    - Response Structure:
+      - peak_hours: Analysis of peak hours.
+
+13. /api/area/tipAnalysis
+    - Description: Retrieves tip analysis for a specific area.
+    - Request Path: /api/area/tipAnalysis
+    - Request Method: GET
+    - Response Structure:
+      - tip_data: Analysis of tips in the area.
+
+14. /api/area/collisionHotspots
+    - Description: Retrieves collision hotspots for a specific area.
+    - Request Path: /api/area/collisionHotspots
+    - Request Method: GET
+    - Response Structure:
+      - hotspots: Array of collision hotspots.
+
+15. /api/area/proximityAnalysis
+    - Description: Retrieves proximity analysis for a specific area.
+    - Request Path: /api/area/proximityAnalysis
+    - Request Method: GET
+    - Response Structure:
+      - proximity_data: Analysis of proximity in the area.
+
+16. /api/area/collisionsOnStreet
+    - Description: Retrieves collisions on a specific street.
+    - Request Path: /api/area/collisionsOnStreet
+    - Request Method: GET
+    - Request Parameters:
+      - Query Parameters:
+        - street_name (type: string, required): Name of the street.
+    - Response Structure:
+      - collisions: Array of collisions on the street.
+
+17. /api/safety/weeklyCollisions
+    - Description: Retrieves weekly collision data.
+    - Request Path: /api/safety/weeklyCollisions
+    - Request Method: GET
+    - Response Structure:
+      - weekly_collisions: Array of weekly collision data.

@@ -1,3 +1,268 @@
-Query 1: 
+Here is the complete list of SQL queries for Queries 1–15, formatted exactly to match your API spec:
 
-Query 2:
+---
+
+Query 1: /api/location/:location_id/pickupsDropoffs
+
+SELECT g.zone, b.borough,
+       COUNT(CASE WHEN t.pu_location_id = g.location_id THEN 1 END) AS total_pickups,
+       COUNT(CASE WHEN t.do_location_id = g.location_id THEN 1 END) AS total_dropoffs
+FROM nyc_geometry g
+LEFT JOIN taxi t ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
+JOIN borough_lut b ON g.borough_id = b.borough_id
+WHERE g.location_id = $1
+GROUP BY b.borough, g.zone;
+
+
+---
+
+Query 2: /api/location/:location_id/collisionsInjuries
+
+SELECT g.zone, b.borough,
+       COUNT(*) AS collisions,
+       SUM(c.number_of_persons_injured) AS total_injuries
+FROM collision c
+JOIN borough_lut b ON c.borough_id = b.borough_id
+JOIN nyc_geometry g ON b.borough_id = g.borough_id
+WHERE g.location_id = $1
+GROUP BY b.borough, g.zone;
+
+
+---
+
+Query 3: /api/location/:location_id/fareTripDistance
+
+SELECT g.zone, b.borough,
+       ROUND(AVG(t.fare_amount), 2) AS average_fare,
+       ROUND(AVG(t.trip_distance), 2) AS average_distance
+FROM taxi t
+JOIN nyc_geometry g ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
+JOIN borough_lut b ON g.borough_id = b.borough_id
+WHERE g.location_id = $1
+GROUP BY b.borough, g.zone;
+
+
+---
+
+Query 4: /api/location/:location_id/safetyRanking
+
+WITH safety AS (
+  SELECT g.location_id, g.zone, g.borough_id,
+         RANK() OVER (ORDER BY COUNT(*) + COALESCE(SUM(c.number_of_persons_injured), 0)) AS safety_rank
+  FROM collision c
+  JOIN borough_lut b ON c.borough_id = b.borough_id
+  JOIN nyc_geometry g ON g.borough_id = b.borough_id
+  GROUP BY g.location_id, g.zone, g.borough_id
+),
+taxi_activity AS (
+  SELECT g.location_id,
+         RANK() OVER (ORDER BY COUNT(*) DESC) AS taxi_availability_rank
+  FROM taxi t
+  JOIN nyc_geometry g ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
+  GROUP BY g.location_id
+)
+SELECT s.zone, s.borough_id,
+       s.safety_rank,
+       t.taxi_availability_rank
+FROM safety s
+JOIN taxi_activity t ON s.location_id = t.location_id
+WHERE s.location_id = $1;
+
+
+
+---
+
+Query 5: /api/location/nyc_geometry
+
+SELECT g.location_id, g.zone, b.borough, g.geometry_shp
+FROM nyc_geometry g
+JOIN borough_lut b ON g.borough_id = b.borough_id;
+
+
+---
+
+Query 6: /api/location/nyc_geometry_map
+> No direct SQL output — result is transformed into GeoJSON using parseWKTPolygon() in JS.
+
+---
+
+Query 7: /api/time/safetyBySeason
+
+SELECT
+  CASE
+    WHEN EXTRACT(MONTH FROM crash_date) IN (12, 1, 2) THEN 'Winter'
+    WHEN EXTRACT(MONTH FROM crash_date) IN (3, 4, 5) THEN 'Spring'
+    WHEN EXTRACT(MONTH FROM crash_date) IN (6, 7, 8) THEN 'Summer'
+    WHEN EXTRACT(MONTH FROM crash_date) IN (9, 10, 11) THEN 'Fall'
+  END AS season,
+  COUNT(*) AS collision_count
+FROM collision
+WHERE crash_date IS NOT NULL
+GROUP BY season
+ORDER BY collision_count DESC;
+
+
+---
+
+Query 8: /api/time/collisionRate
+
+WITH collisions_count AS (
+  SELECT COUNT(*) AS collisions
+  FROM collision c
+  JOIN borough_lut b ON c.borough_id = b.borough_id
+  JOIN nyc_geometry g ON g.borough_id = b.borough_id
+  WHERE c.crash_date BETWEEN $1 AND $2
+    AND g.location_id = $3
+),
+taxi_count AS (
+  SELECT COUNT(*) AS taxi_rides
+  FROM taxi t
+  JOIN nyc_geometry g ON t.pu_location_id = g.location_id OR t.do_location_id = g.location_id
+  WHERE t.tpep_pickup_datetime BETWEEN $1 AND $2
+    AND g.location_id = $3
+)
+SELECT (c.collisions * 1000.0 / NULLIF(t.taxi_rides, 0)) AS collision_rate
+FROM collisions_count c, taxi_count t;
+
+
+---
+
+Query 9: /api/time/sameCollisionDateHours
+
+SELECT
+  DATE(crash_date) AS date,
+  EXTRACT(HOUR FROM crash_time::time) AS hour,
+  COUNT(*) AS collision_count
+FROM collision
+WHERE crash_date IS NOT NULL AND crash_time IS NOT NULL
+GROUP BY date, hour
+HAVING COUNT(*) > 1
+ORDER BY collision_count DESC;
+
+
+---
+
+Query 10: /api/time/collisionsInDateRange
+
+SELECT 
+  collision_id,
+  crash_date,
+  borough_id,
+  latitude,
+  longitude,
+  number_of_persons_injured,
+  number_of_persons_killed
+FROM collision
+WHERE crash_date BETWEEN $1 AND $2
+ORDER BY crash_date ASC
+LIMIT $3 OFFSET $4;
+
+
+---
+
+Query 11: /api/area/peakHoursAnalysis
+
+SELECT g.zone, b.borough, EXTRACT(HOUR FROM t.tpep_pickup_datetime) AS hour, COUNT(*) AS activity_count
+FROM taxi t
+JOIN nyc_geometry g ON t.pu_location_id = g.location_id
+JOIN borough_lut b ON g.borough_id = b.borough_id
+GROUP BY g.zone, b.borough, hour
+ORDER BY activity_count DESC
+LIMIT 10;
+
+
+---
+
+Query 12: /api/area/tipAnalysis
+
+WITH tip_stats AS (
+  SELECT
+    PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY tip_amount) AS q1,
+    PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY tip_amount) AS q3
+  FROM taxi
+),
+outlier_rides AS (
+  SELECT
+    t.trip_id,
+    t.tpep_pickup_datetime,
+    t.tpep_dropoff_datetime,
+    t.fare_amount,
+    t.tip_amount,
+    g.zone,
+    b.borough
+  FROM taxi t
+  JOIN nyc_geometry g ON t.pu_location_id = g.location_id
+  JOIN borough_lut b ON g.borough_id = b.borough_id,
+  tip_stats ts
+  WHERE t.tip_amount < (ts.q1 - 1.5 * (ts.q3 - ts.q1))
+     OR t.tip_amount > (ts.q3 + 1.5 * (ts.q3 - ts.q1))
+)
+SELECT *
+FROM outlier_rides
+ORDER BY tip_amount DESC;
+
+
+---
+
+Query 13: /api/area/collisionHotspots
+
+WITH taxi_activity AS (
+  SELECT g.location_id, COUNT(t.*) AS pickup_count
+  FROM nyc_geometry g
+  LEFT JOIN taxi t ON t.pu_location_id = g.location_id
+  GROUP BY g.location_id
+)
+SELECT g.zone, b.borough, COUNT(c.*) AS collision_count, COALESCE(ta.pickup_count, 0) AS pickup_count
+FROM nyc_geometry g
+JOIN borough_lut b ON g.borough_id = b.borough_id
+LEFT JOIN collision c ON c.borough_id = g.borough_id
+LEFT JOIN taxi_activity ta ON g.location_id = ta.location_id
+GROUP BY g.zone, b.borough, ta.pickup_count
+HAVING COUNT(c.*) > 10 AND COALESCE(ta.pickup_count, 0) < 10
+ORDER BY collision_count DESC, pickup_count ASC;
+---
+
+Query 14: /api/area/proximityAnalysis
+
+WITH collision_points AS (
+        SELECT
+          c.collision_id,
+          c.crash_date,
+          ST_Transform(ST_SetSRID(ST_MakePoint(c.longitude, c.latitude), 4326), 2263) AS geom
+        FROM collision c
+        WHERE c.longitude IS NOT NULL AND c.latitude IS NOT NULL AND c.crash_date IS NOT NULL
+      ),
+      taxi_geom AS (
+        SELECT
+          t.trip_id,
+          t.trip_distance,
+          t.tpep_pickup_datetime::date AS pickup_date,
+          ST_Transform(g.geometry, 2263) AS pu_geom
+        FROM taxi t
+        JOIN nyc_geometry g ON t.pu_location_id = g.location_id
+        WHERE t.tpep_pickup_datetime IS NOT NULL
+      )
+      SELECT
+        c.collision_id,
+        COUNT(*) AS nearby_taxi_count
+      FROM collision_points c
+      JOIN taxi_geom t ON c.crash_date = t.pickup_date
+      WHERE ST_DWithin(c.geom, t.pu_geom, 5000)
+      GROUP BY c.collision_id
+      LIMIT 3
+      
+---
+
+Query 15: /api/safety/weeklyCollisions
+
+SELECT 
+  g.location_id,
+  g.zone,
+  COUNT(*) as collision_count
+FROM collision c
+JOIN borough_lut b ON c.borough_id = b.borough_id
+JOIN nyc_geometry g ON g.location_id = c.location_id
+WHERE b.borough = $1
+  AND c.crash_date BETWEEN $2 AND $3
+GROUP BY g.location_id, g.zone
+ORDER BY collision_count DESC;
