@@ -13,6 +13,7 @@ const peakHoursAnalysis = async function (req, res) {
       ORDER BY activity_count DESC
       LIMIT 10
     `);
+    console.log("QUERY: peak hours")
     res.json(result.rows);
   } catch (error) {
     console.error('Error analyzing peak hours:', error);
@@ -52,7 +53,9 @@ const tipAnalysis = async function (req, res) {
       SELECT *
       FROM outlier_rides
       ORDER BY tip_amount DESC
+      LIMIT 10
     `);
+    console.log("QUERY: tip analysis")
     res.json(result.rows);
   } catch (error) {
     console.error('Error analyzing tips:', error);
@@ -82,6 +85,7 @@ const collisionHotspots = async function (req, res) {
       HAVING COUNT(c.*) > 10 AND COALESCE(ta.pickup_count, 0) < 10
       ORDER BY collision_count DESC, pickup_count ASC
     `);
+    console.log("QUERY: collision hotspot")
     res.json(result.rows);
   } catch (error) {
     console.error('Error finding collision hotspots:', error);
@@ -129,7 +133,7 @@ const proximityAnalysis = async function (req, res) {
       GROUP BY c.collision_id
       LIMIT 3;
     `, [date]);
-
+    console.log("QUERY: proximity")
     res.json(result.rows);
   } catch (error) {
     console.error('Error analyzing collision and taxi proximity:', error);
@@ -164,7 +168,8 @@ const collisionsOnStreet = async function (req, res) {
             AND o.off_street_name ILIKE $1
       )
       ORDER BY c.crash_date DESC;
-    `, [`%${streetName}%`]); // Use parameterized query to prevent SQL injection
+    `, [`%${streetName}%`]); 
+    console.log("QUERY: on street")
     res.json(result.rows);
   } catch (err) {
     console.error('Error retrieving collisions on street:', err);

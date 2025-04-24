@@ -16,6 +16,7 @@ const pickupsDropoffs = async function (req, res) {
         WHERE g.location_id = $1
         GROUP BY b.borough, g.zone
       `, [locationId]);
+      console.log("QUERY: pickup dropoffs")
       res.json(result.rows[0]);
     } catch (err) {
       console.error('Error retrieving pickups and drop-offs:', err);
@@ -40,6 +41,7 @@ const collisionsInjuries = async function (req, res) {
         WHERE g.location_id = $1
         GROUP BY b.borough, g.zone
       `, [locationId]);
+      console.log("QUERY: collision injuries")
       res.json(result.rows[0]);
     } catch (err) {
       console.error('Error retrieving collisions and injuries:', err);
@@ -64,6 +66,7 @@ const fareTripDistance = async function (req, res) {
         WHERE g.location_id = $1
         GROUP BY b.borough, g.zone
       `, [locationId]);
+      console.log("QUERY: fare distance")
       res.json(result.rows[0]);
     } catch (err) {
       console.error('Error retrieving fare and trip distance:', err);
@@ -102,6 +105,7 @@ const safetyRanking = async function (req, res) {
         WHERE s.location_id = $1
       `, [locationId]);
       res.json(result.rows[0]);
+      console.log("QUERY: safety ranking")
     } catch (err) {
       console.error('Error retrieving safety ranking:', err);
       res.status(500).send('Error retrieving safety ranking');
@@ -139,6 +143,7 @@ const validLocations = async function (req, res)  {
       JOIN taxi_zones tz ON g.location_id = tz.location_id
       ORDER BY g.zone
     `);
+    console.log("QUERY: valid locations")
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching valid locations:', error);
@@ -157,7 +162,7 @@ const getNYCGeometry = async function (req, res) {
             FROM nyc_geometry g
             JOIN borough_lut b ON g.borough_id = b.borough_id
         `);
-        console.log("SEND: nyc geometry")
+        console.log("QUERY: nyc geometry")
         res.json(result.rows);
     } catch (err) {
         console.error('Error retrieving NYC geometry data:', err);

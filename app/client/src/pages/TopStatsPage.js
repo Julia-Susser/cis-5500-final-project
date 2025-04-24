@@ -68,8 +68,8 @@ export default function TopStatsPage() {
                 <TableCell>{row.trip_id}</TableCell>
                 <TableCell>{row.tpep_pickup_datetime}</TableCell>
                 <TableCell>{row.tpep_dropoff_datetime}</TableCell>
-                <TableCell>${row.fare_amount?.toFixed(2)}</TableCell>
-                <TableCell>${row.tip_amount?.toFixed(2)}</TableCell>
+                <TableCell>${row.fare_amount}</TableCell>
+                <TableCell>${row.tip_amount}</TableCell>
                 <TableCell>{row.zone}</TableCell>
                 <TableCell>{row.borough}</TableCell>
               </TableRow>
