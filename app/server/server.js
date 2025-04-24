@@ -24,29 +24,26 @@ app.get('/location/:location_id/collisions_injuries', routes.collisionsInjuries)
 // Takes: `location_id` as a URL parameter.
 app.get('/location/:location_id/fare_trip_distance', routes.fareTripDistance);
 
-// // Query 4: Retrieves the ranking of the area in terms of safety and taxi availability.
+// Query 4: Retrieves the ranking of the area in terms of safety and taxi availability.
 // Takes: `location_id` as a URL parameter.
 app.get('/location/:location_id/safety_ranking', routes.safetyRanking);
 
-// Query 5: Retrieves zones with both taxi activity and collisions in a date range.
-// Takes: No parameters.
-app.get('/location/valid_locations', routes.validLocations);
-
-// Query: get nyc geometry
+// Query 5:
 // Takes: No parameters.
 app.get('/location/nyc_geometry', routes.getNYCGeometry);
 
+// Query 6:
 app.get('/location/nyc_geometry_map', routes.getNYCGeometryMap);
 
 // =======================
 // Time-Based Safety & Collision Routes (Queries 6–9)
 // =======================
 
-// Query 6: Analyzes how safety varies by season (e.g., winter vs. summer).
+// Query 7: Analyzes how safety varies by season (e.g., winter vs. summer).
 // Takes: No parameters.
 app.get('/time/safety_by_season', routes.safetyBySeason);
 
-// Query 7: Computes collision rate per 1,000 taxi rides at a location in a date range.
+// Query 8: Computes collision rate per 1,000 taxi rides at a location in a date range.
 // Takes: `start_date`, `end_date`, and `location_id` as query parameters.
 app.get('/time/collision_rate', routes.collisionRate);
 
@@ -54,35 +51,32 @@ app.get('/time/collision_rate', routes.collisionRate);
 // Takes: No parameters.
 app.get('/time/same_collision_date_hours', routes.sameCollisionDateHours);
 
-
+// Query 10: Finds collisions in date range
+// Takes: date range
 app.get('/time/collisions', routes.collisionsInDateRange);
 
 // =======================
-// Area-Based Analytics (Queries 10–13)
+// Area-Based Analytics (Queries 11–15)
 // =======================
 
-// // Query 10: Finds peak hours and most active pickup locations.
-// // Takes: No parameters.
+// Query 11: Finds peak hours and most active pickup locations.
+// Takes: No parameters.
 app.get('/area/peak_hours', routes.peakHoursAnalysis);
 
-// // Query 11: Analyzes locations with tip averages above certain thresholds.
-// // Takes: No parameters.
+// Query 12: Analyzes locations with tip averages above certain thresholds.
+// Takes: No parameters.
 app.get('/area/tip_analysis', routes.tipAnalysis);
 
-// // Query 12: Identifies collision hotspots with very few taxi pickups.
-// // Takes: No parameters.
+// Query 13: Identifies collision hotspots with very few taxi pickups.
+// Takes: No parameters.
 app.get('/area/collision_hotspots', routes.collisionHotspots);
 
-// // Query 13: Analyzes proximity of collisions to taxi pickups (within 5000 meters).
-// // Takes: No parameters.
+// Query 14: Analyzes proximity of collisions to taxi pickups (within 5000 meters).
+// Takes: No parameters.
 app.get('/collision/proximity_analysis', routes.proximityAnalysis);
 
-// // Query 14: Retrieves collisions involving a specific street name.
-// // Takes: `street_name` as a URL parameter.
-app.get('/collision/on_street/:street_name', routes.collisionsOnStreet);
-
-// // Query 15: Retrieves weekly collisions for a specific borough and date range.
-// // Takes: `borough`, `start_date`, and `end_date` as query parameters.
+// Query 15: Retrieves weekly collisions for a specific borough and date range.
+// Takes: `borough`, `start_date`, and `end_date` as query parameters.
 app.get('/safety/weekly_collisions', routes.weeklyCollisions);
 
 // =======================
