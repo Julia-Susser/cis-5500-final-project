@@ -24,6 +24,7 @@ export default function TopStatsPage() {
 
   const fetchProximity = () => {
     const url = `http://${config.server_host}:${config.server_port}/collision/proximity_analysis?date=${date}`;
+    console.log(url)
     fetch(url)
       .then(res => res.json())
       .then(data => setProximityStats(Array.isArray(data) ? data : []))

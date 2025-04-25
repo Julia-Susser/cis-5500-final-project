@@ -9,22 +9,51 @@ The repository is organized as follows:
 ```
 final-project/
 ├── app/
+│   ├── client/
+│   │   ├── node_modules/
+│   │   ├── public/
+│   │   ├── src/
+│   │   │   ├── components/
+│   │   │   │   ├── LazyTable.js
+│   │   │   │   ├── NavBar.js
+│   │   │   │   ├── SongCard.js
+│   │   │   ├── helpers/
+│   │   │   ├── pages/
+│   │   │   │   ├── hw3/
+│   │   │   │   ├── CollisionsByDatePage.js
+│   │   │   │   ├── LocationInfoPage.js
+│   │   │   │   ├── TopStatsPage.js
+│   │   │   ├── App.js
+│   │   │   ├── config.json
+│   │   │   ├── index.js
+│   │   ├── .gitignore
+│   │   ├── package.json
+│   │   ├── package-lock.json
+│
 │   ├── server/
-│   │   ├── db.js                # Handles the PostgreSQL database connection using the `pg` library.
-│   │   ├── server.js            # Main Express server file that initializes the application and defines API endpoints.
-│   │   ├── routes/              # Directory containing modular route handlers for different API groups.
-│   │   │   ├── locationRoutes.js # Handles location-based analytics (e.g., pickups, drop-offs, safety rankings).
-│   │   │   ├── areaRoutes.js     # Handles area-based analytics (e.g., peak hours, tip analysis, collision hotspots, proximity analysis).
-│   │   │   ├── timeRoutes.js     # Handles time-based analytics (e.g., safety by season, collision rates).
-│   │   ├── config.json          # Configuration file containing database credentials and server settings.
-│   │   ├── routes.js            # Aggregates and exports all route handlers.
-├── input/                       # Directory for raw input files (e.g., CSVs, JSONs) used for data ingestion.
+│   │   ├── __tests__/
+│   │   ├── node_modules/
+│   │   ├── routes/
+│   │   │   ├── areaRoutes.js
+│   │   │   ├── locationRoutes.js
+│   │   │   ├── safetyRoutes.js
+│   │   │   ├── timeRoutes.js
+│   │   ├── config.json
+│   │   ├── db.js
+│   │   ├── routes.js
+│   │   ├── server.js
+│   │   ├── .gitignore
+│   │   ├── package.json
+│   │   ├── package-lock.json
+│
+├── input/
+│   ├── <raw data files e.g., CSVs>
+│
 ├── data/
-│   ├── src/                     # Directory for data processing scripts and notebooks.
-│   │   ├── processing.ipynb     # Jupyter Notebook for cleaning and transforming raw data.
-│   │   ├── populate_database.txt # SQL script for populating the database with processed data.
-│   │   ├── schema.sql           # SQL script for creating the database schema.
-├── frontend/                    # Directory for the frontend application (currently empty).
+│   ├── src/
+│   │   ├── processing.ipynb
+│   │   ├── populate_database.txt
+│   │   ├── schema.txt
 ```
 
 ## File Descriptions
@@ -62,31 +91,76 @@ Scripts and notebooks for cleaning and transforming raw data.
 
 ---
 
-### Frontend
-- **`frontend/`**: Placeholder for the frontend application.
-  - Add files like `index.html`, `styles.css`, and `app.js` here.
+### Frontend (`app/client/`)
+Contains the React-based frontend application.
+
+- **`public/`**: Static assets like `index.html`.
+- **`src/components/`**: Reusable UI components (e.g., `NavBar.js`, `LazyTable.js`).
+- **`src/pages/`**: Page-level components mapped to frontend routes (e.g., `TopStatsPage.js`, `LocationInfoPage.js`).
+- **`src/helpers/`**: Utility functions and shared logic.
+- **`App.js`**: Root component that defines the structure of the app.
+- **`index.js`**: Entry point for rendering the app.
+- **`config.json`**: Stores frontend configuration (e.g., API base URLs).
+
+---
 
 
 
 ## API Endpoints
 
-### Location-Based Analytics
-- **GET /location/:location_id/pickups_dropoffs**: Retrieves total taxi pickups and drop-offs in a given location.
-- **GET /location/:location_id/collisions_injuries**: Retrieves the number of collisions and injuries recorded in the area.
-- **GET /location/:location_id/fare_trip_distance**: Retrieves the average fare and trip distance for rides in the location.
-- **GET /location/:location_id/safety_ranking**: Retrieves the ranking of the area in terms of safety and taxi availability.
+---
 
-### Time-Based Analytics
-- **GET /time/safety_by_season**: Analyzes how safety (collisions) varies by season.
-- **GET /time/collision_rate**: Computes the collision rate per 1,000 taxi rides at a location in a date range.
-- **GET /time/same_collision_date_hours**: Finds hours with repeated collisions on the same date.
+### API Endpoints (`server/server.js`)
+The Express server exposes the following RESTful API endpoints for location, time, and area-based NYC taxi analytics.
 
-### Area-Based Analytics
-- **GET /area/peak_hours**: Finds peak hours and most active pickup locations.
-- **GET /area/tip_analysis**: Analyzes locations with tip averages above certain thresholds.
-- **GET /area/collision_hotspots**: Identifies collision hotspots with very few taxi pickups.
-- **GET /collision/proximity_analysis**: Analyzes proximity of collisions to taxi pickups (within 5000 meters).
-- **GET /collision/on_street/:street_name**: Retrieves collisions involving a specific street name.
+- **`GET /location/:location_id/pickups_dropoffs`**  
+  Returns the total number of taxi pickups and drop-offs for a specific location.
+
+- **`GET /location/:location_id/collisions_injuries`**  
+  Returns the number of collisions and injuries in a specific location.
+
+- **`GET /location/:location_id/fare_trip_distance`**  
+  Returns average fare and trip distance for a specific location.
+
+- **`GET /location/:location_id/safety_ranking`**  
+  Returns a safety and taxi availability ranking for the specified location.
+
+- **`GET /location/nyc_geometry`**  
+  Returns NYC zone geometries for mapping and analysis.
+
+- **`GET /location/nyc_geometry_map`**  
+  Returns full geometry data for client-side map rendering.
+
+
+- **`GET /time/safety_by_season`**  
+  Analyzes how safety varies by season (e.g., winter vs. summer).
+
+- **`GET /time/collision_rate?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD&location_id=ID`**  
+  Computes collision rate per 1,000 taxi rides in a date range at a location.
+
+- **`GET /time/same_collision_date_hours`**  
+  Identifies repeated collisions occurring at the same hours across dates.
+
+- **`GET /time/collisions?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`**  
+  Returns all collisions occurring within a given date range.
+
+- **`GET /area/peak_hours`**  
+  Finds peak taxi activity hours and pickup locations.
+
+- **`GET /area/tip_analysis`**  
+  Analyzes average tip amounts across different areas.
+
+- **`GET /area/collision_hotspots`**  
+  Identifies areas with high collisions but low taxi activity.
+
+- **`GET /collision/proximity_analysis`**  
+  Measures spatial proximity of collisions to taxi pickups (within 5000m).
+
+- **`GET /safety/weekly_collisions?borough=BOROUGH&start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`**  
+  Returns weekly collision statistics for a borough over a date range.
+
+---
+
 
 
 ## Technologies Used

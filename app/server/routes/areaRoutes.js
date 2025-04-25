@@ -106,32 +106,33 @@ const proximityAnalysis = async function (req, res) {
     }
 
     const result = await client.query(`
-      WITH collision_points AS (
-        SELECT
-          c.collision_id,
-          c.crash_date,
-          ST_Transform(ST_SetSRID(ST_MakePoint(c.longitude, c.latitude), 4326), 2263) AS geom
-        FROM collision c
-        WHERE c.longitude IS NOT NULL AND c.latitude IS NOT NULL AND c.crash_date = $1
-      ),
-      taxi_geom AS (
-        SELECT
-          t.trip_id,
-          t.trip_distance,
-          t.tpep_pickup_datetime::date AS pickup_date,
-          ST_Transform(g.geometry, 2263) AS pu_geom
-        FROM taxi t
-        JOIN nyc_geometry g ON t.pu_location_id = g.location_id
-        WHERE t.tpep_pickup_datetime::date = $1
-      )
       SELECT
-        c.collision_id,
-        COUNT(*) AS nearby_taxi_count
-      FROM collision_points c
-      JOIN taxi_geom t ON c.crash_date = t.pickup_date
-      WHERE ST_DWithin(c.geom, t.pu_geom, 5000)
-      GROUP BY c.collision_id
-      LIMIT 3;
+    c.collision_id,
+    COUNT(*) AS nearby_taxi_count
+  FROM (
+    SELECT
+      collision_id,
+      crash_date,
+      geom
+    FROM collision_points_mat
+    WHERE crash_date = $1
+  ) c
+  JOIN (
+    SELECT
+      t.trip_id,
+      t.trip_distance,
+      t.tpep_pickup_datetime::date AS pickup_date,
+      ST_Transform(g.geometry, 2263) AS pu_geom
+    FROM taxi t
+    JOIN nyc_geometry g ON t.pu_location_id = g.location_id
+    WHERE t.tpep_pickup_datetime::date = $1
+  ) t
+  ON c.crash_date = t.pickup_date
+  WHERE
+    c.geom && ST_Expand(t.pu_geom, 5000) AND
+    ST_DWithin(c.geom, t.pu_geom, 5000)
+  GROUP BY c.collision_id
+  LIMIT 1;
     `, [date]);
     console.log("QUERY: proximity")
     res.json(result.rows);
