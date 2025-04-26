@@ -23,6 +23,7 @@ export default function TopStatsPage() {
   const [date, setDate] = useState('2024-06-01');
 
   const fetchProximity = () => {
+    setProximityStats([]);
     const url = `http://${config.server_host}:${config.server_port}/collision/proximity_analysis?date=${date}`;
     console.log(url)
     fetch(url)
@@ -128,15 +129,18 @@ export default function TopStatsPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {proximityStats.map(row => (
-              <TableRow key={row.collision_id}>
-                <TableCell>{row.collision_id}</TableCell>
-                <TableCell>{row.nearby_taxi_count}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+  {proximityStats.map((row, index) => (
+    <TableRow key={row.collision_id || index}>
+      <TableCell>{row.collision_id}</TableCell>
+      <TableCell>{row.nearby_taxi_count}</TableCell>
+    </TableRow>
+  ))}
+</TableBody>
         </Table>
       </TableContainer>
+      <Box sx={{ height: '300px' }} />
     </Container>
   );
+
+
 }

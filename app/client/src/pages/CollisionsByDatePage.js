@@ -97,6 +97,7 @@ export default function CollisionsByDatePage() {
           Next
         </Button>
       </Box>
+      <Box sx={{ height: '300px' }} />
     </Container>
   );
 }

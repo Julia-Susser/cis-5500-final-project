@@ -20,9 +20,6 @@ app.get('/location/:location_id/pickups_dropoffs', routes.pickupsDropoffs);
 // Takes: `location_id` as a URL parameter.
 app.get('/location/:location_id/collisions_injuries', routes.collisionsInjuries);
 
-// Query 3: Retrieves the average fare and trip distance for rides in the location.
-// Takes: `location_id` as a URL parameter.
-app.get('/location/:location_id/fare_trip_distance', routes.fareTripDistance);
 
 // Query 4: Retrieves the ranking of the area in terms of safety and taxi availability.
 // Takes: `location_id` as a URL parameter.
@@ -59,9 +56,6 @@ app.get('/time/collisions', routes.collisionsInDateRange);
 // Area-Based Analytics (Queries 11–15)
 // =======================
 
-// Query 11: Finds peak hours and most active pickup locations.
-// Takes: No parameters.
-app.get('/area/peak_hours', routes.peakHoursAnalysis);
 
 // Query 12: Analyzes locations with tip averages above certain thresholds.
 // Takes: No parameters.

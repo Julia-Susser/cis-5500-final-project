@@ -14,73 +14,90 @@ export default function LocationInfoPage() {
   const [borough, setBorough] = useState('');
   const [zone, setZone] = useState('');
 
-  const [locationData, setLocationData] = useState([]);
   const [locationMetrics, setLocationMetrics] = useState([]);
   const [geometryData, setGeometryData] = useState([]);
   const [geometryMap, setGeometryMap] = useState([]);
 
-  useEffect(() => {
-    function fetchData() {
-      fetch(`http://${config.server_host}:${config.server_port}/location/nyc_geometry`)
-        .then(res => res.json())
-        .then(data => setGeometryData(data));
-
-        fetch(`http://${config.server_host}:${config.server_port}/location/nyc_geometry_map`)
-        .then(res => res.json())
-        .then(data => {
-          setGeometryMap(data.features || [])
-        }
-        );
-
+useEffect(() => {
+    const fetchGeometryData = async () => {
+      try {
+        const geometryRes = await fetch(`http://${config.server_host}:${config.server_port}/location/nyc_geometry`);
+        const geometryJson = await geometryRes.json();
+        setGeometryData(geometryJson);
   
-      fetch(`http://${config.server_host}:${config.server_port}/location/valid_locations`)
-        .then(res => res.json())
-        .then(data => setLocationData(data));
+        const mapRes = await fetch(`http://${config.server_host}:${config.server_port}/location/nyc_geometry_map`);
+        const mapJson = await mapRes.json();
+        setGeometryMap(mapJson.features || []);
   
-      if (locationId) {
-        fetch(`http://${config.server_host}:${config.server_port}/location/${locationId}/pickups_dropoffs`)
-          .then(res => res.json())
-          .then(pickupsJson =>
-            setLocationMetrics(prev => ({
-              ...prev,
-              total_pickups: pickupsJson.total_pickups,
-              total_dropoffs: pickupsJson.total_dropoffs
-            }))
-          );
-  
-        fetch(`http://${config.server_host}:${config.server_port}/location/${locationId}/collisions_injuries`)
-          .then(res => res.json())
-          .then(collisionsJson =>
-            setLocationMetrics(prev => ({
-              ...prev,
-              collisions: collisionsJson.collisions,
-              total_injuries: collisionsJson.total_injuries
-            }))
-          );
-  
-        fetch(`http://${config.server_host}:${config.server_port}/location/${locationId}/fare_trip_distance`)
-          .then(res => res.json())
-          .then(fareJson =>
-            setLocationMetrics(prev => ({
-              ...prev,
-              average_fare: fareJson.average_fare,
-              average_trip_distance: fareJson.average_distance
-            }))
-          );
-        fetch(`http://${config.server_host}:${config.server_port}/location/${locationId}/safety_ranking`)
-          .then(res => res.json())
-          .then(safetyJson =>
-            setLocationMetrics(prev => ({
-              ...prev,
-              safety_ranking: safetyJson.safety_ranking,
-              safety_ranking: safetyJson.taxi_availability_rank
-            }))
-          );
+        console.log('Fetched geometry data:', geometryJson);
+        console.log('Fetched geometry map:', mapJson.features || []);
+        
+      } catch (err) {
+        console.error('Error fetching geometry data or map:', err);
       }
-    }
+    };
   
+    fetchGeometryData();
+  }, []);
+  
+  useEffect(() => {
+    if (!locationId) return;
+  
+    const fetchData = async () => {
+      setLocationMetrics({
+        "total_pickups": 0,
+        "total_dropoffs": 0,
+        "collisions": 0,
+        "total_injuries": 0,
+        "average_trip_distance": 0,
+        "safety_ranking": 0,
+        "taxi_availability_rank": 0
+      })
+      try {
+        console.log("hi")
+        const pickupsRes = await fetch(`http://${config.server_host}:${config.server_port}/location/${locationId}/pickups_dropoffs`);
+        const pickupsText = await pickupsRes.text();
+        console.log('Pickups Response:', pickupsText);
+        const pickupsJson = pickupsText ? JSON.parse(pickupsText) : {};
+        console.log("hi1")
+        const collisionsRes = await fetch(`http://${config.server_host}:${config.server_port}/location/${locationId}/collisions_injuries`);
+        const collisionsText = await collisionsRes.text();
+        console.log('Collisions Response:', collisionsText);
+        const collisionsJson = collisionsText ? JSON.parse(collisionsText) : {};
+        console.log("hi2")
+        console.log("hi3")
+        const safetyRes = await fetch(`http://${config.server_host}:${config.server_port}/location/${locationId}/safety_ranking`);
+        const safetyText = await safetyRes.text();
+        console.log('Safety Response:', safetyText);
+        const safetyJson = safetyText ? JSON.parse(safetyText) : {};
+        console.log("hi4")
+  
+        setLocationMetrics({
+          total_pickups: pickupsJson.total_pickups,
+          total_dropoffs: pickupsJson.total_dropoffs,
+          collisions: collisionsJson.collisions,
+          total_injuries: collisionsJson.total_injuries,
+          safety_ranking: safetyJson.safety_rank,  // note: safety_rank from backend
+          taxi_availability_rank: safetyJson.taxi_availability_rank
+        });
+  
+        console.log({
+          total_pickups: pickupsJson.total_pickups,
+          total_dropoffs: pickupsJson.total_dropoffs,
+          collisions: collisionsJson.collisions,
+          total_injuries: collisionsJson.total_injuries,
+          safety_ranking: safetyJson.safety_rank,
+          taxi_availability_rank: safetyJson.taxi_availability_rank
+        });
+  
+      } catch (error) {
+        console.log()
+        console.error('Error fetching location metrics:', error);
+      }
+    };
     fetchData();
   }, [locationId]);
+  
 
   
 
@@ -153,16 +170,6 @@ export default function LocationInfoPage() {
                     setLocationId(selectedLocation.location_id);
                     setBorough(selectedLocation.borough);
                     setZone(selectedLocation.zone);
-                    setLocationMetrics({
-                      "total_pickups": 0,
-                      "total_dropoffs": 0,
-                      "collisions": 0,
-                      "total_injuries": 0,
-                      "average_fare": 0,
-                      "average_trip_distance": 0,
-                      "safety_ranking": 0,
-                      "taxi_availability_rank": 0
-                    })
                   alert(`Zone: ${selectedLocation.zone} Borough: ${selectedLocation.borough}`);
                 } else {
                   alert('No Data for selected location');
@@ -181,23 +188,24 @@ export default function LocationInfoPage() {
         : ' Select a location on the map to view details.'}
     </h2>
     <TableContainer>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Attribute Type</TableCell>
-            <TableCell>Attribute Value</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {Object.entries(locationMetrics).map(([key, value]) => (
-            <TableRow key={key}>
-              <TableCell>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</TableCell>
-              <TableCell>{typeof value === 'object' ? <pre>{JSON.stringify(value, null, 2)}</pre> : value}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+  <Table>
+    <TableHead>
+      <TableRow>
+        <TableCell>Attribute Type</TableCell>
+        <TableCell>Attribute Value</TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody key={locationId}>
+      {Object.entries(locationMetrics).map(([key, value]) => (
+        <TableRow key={key}>
+          <TableCell>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</TableCell>
+          <TableCell>{typeof value === 'object' ? <pre>{JSON.stringify(value, null, 2)}</pre> : value}</TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+</TableContainer>
+
 
   
 

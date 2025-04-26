@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Container, FormControl, InputLabel, MenuItem, Select, Slider, Typography } from '@mui/material';
+import { Container, FormControl, InputLabel, MenuItem, Select, Slider, Typography, Box } from '@mui/material';
 import { MapContainer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import React from 'react';
@@ -279,6 +279,7 @@ export default function WeeklyCollisionsPage() {
           </>
         )}
       </MapContainer>
+       <Box sx={{ height: '300px' }} />
     </Container>
   );
 }

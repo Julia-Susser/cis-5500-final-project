@@ -48,8 +48,6 @@ export default function NavBar() {
 
           <NavText href='/topstats' text='Top Stats' />
           <NavText href='/collisions' text='Collisions' />
-
-          <NavText href='/area' text='Area' />
         </Toolbar>
       </Container>
     </AppBar>

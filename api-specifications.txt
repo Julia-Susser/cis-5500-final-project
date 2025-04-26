@@ -26,18 +26,6 @@ API Specifications:
      - collisions: Total number of collisions in the location.
      - injuries: Total number of injuries in the location.
 
-3. /api/location/:location_id/fareTripDistance
-   - Description: Retrieves the average fare and trip distance for a specific location.
-   - Request Path: /api/location/:location_id/fareTripDistance
-   - Request Method: GET
-   - Request Parameters:
-     - Path Parameter:
-       - location_id (type: integer, required): The ID of the location.
-   - Query Parameters in SQL:
-     - $1: The location_id passed as a path parameter.
-   - Response Structure:
-     - average_fare: Average fare for trips in the location.
-     - average_trip_distance: Average trip distance for trips in the location.
 
 4. /api/location/:location_id/safetyRanking
    - Description: Retrieves the safety ranking for a specific location.
@@ -51,12 +39,7 @@ API Specifications:
    - Response Structure:
      - safety_ranking: Safety ranking of the location.
 
-5. /api/location/validLocations
-   - Description: Retrieves a list of valid locations.
-   - Request Path: /api/location/validLocations
-   - Request Method: GET
-   - Response Structure:
-     - locations: Array of valid location IDs.
+
 
 6. /api/location/geometry
    - Description: Retrieves the geometry of NYC locations.
@@ -104,12 +87,6 @@ API Specifications:
     - Response Structure:
       - collisions: Array of collisions within the date range.
 
-12. /api/area/peakHoursAnalysis
-    - Description: Retrieves analysis of peak hours for a specific area.
-    - Request Path: /api/area/peakHoursAnalysis
-    - Request Method: GET
-    - Response Structure:
-      - peak_hours: Analysis of peak hours.
 
 13. /api/area/tipAnalysis
     - Description: Retrieves tip analysis for a specific area.
