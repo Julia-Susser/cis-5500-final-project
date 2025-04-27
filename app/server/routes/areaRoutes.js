@@ -31,6 +31,7 @@ const tipAnalysis = async function (req, res) {
   }
 };
 
+
 // Function to find collision hotspots with very few taxi pickups (Query 13)
 const collisionHotspots = async function (req, res) {
   const client = await connection.connect();
@@ -43,7 +44,7 @@ const collisionHotspots = async function (req, res) {
         COALESCE(ta.taxi_trips, 0) AS pickup_count
       FROM nyc_geometry g
       JOIN borough_lut b ON g.borough_id = b.borough_id
-      LEFT JOIN taxi_scores_matview ta ON g.location_id = ta.location_id
+      LEFT JOIN taxi_pu_matview ta ON g.location_id = ta.location_id
       LEFT JOIN (
         SELECT location_id, COUNT(*) AS collision_count
         FROM collision

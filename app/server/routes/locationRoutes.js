@@ -13,8 +13,8 @@ const pickupsDropoffs = async function (req, res) {
   COALESCE(dropo.taxi_trips, 0) AS total_dropoffs
 FROM nyc_geometry g
 JOIN borough_lut b ON g.borough_id = b.borough_id
-LEFT JOIN taxi_scores_matview pu ON g.location_id = pu.location_id
-LEFT JOIN taxi_scores_do_matview dropo ON g.location_id = dropo.location_id
+LEFT JOIN taxi_pu_matview pu ON g.location_id = pu.location_id
+LEFT JOIN taxi_do_matview dropo ON g.location_id = dropo.location_id
 WHERE g.location_id = $1
 GROUP BY g.zone, b.borough, pu.taxi_trips, dropo.taxi_trips;
     `, [locationId]);
@@ -53,28 +53,13 @@ const collisionsInjuries = async function (req, res) {
   }
 };
 
+
+
 // Function to retrieve the ranking of the area in terms of safety and taxi availability
 const safetyRanking = async function (req, res) {
   const client = await connection.connect();
   try {
     const locationId = req.params.location_id;
-    console.log(`
-      WITH combined AS (
-        SELECT
-          s.location_id,
-          s.zone,
-          s.borough_id,
-          s.safety_score,
-          t.taxi_trips,
-          RANK() OVER (ORDER BY s.safety_score) AS safety_rank,
-          RANK() OVER (ORDER BY t.taxi_trips DESC) AS taxi_availability_rank
-        FROM safety_scores_matview s
-        JOIN taxi_scores_matview t ON s.location_id = t.location_id
-      )
-      SELECT zone, borough_id, safety_rank, taxi_availability_rank
-      FROM combined
-      WHERE location_id = ${locationId};
-    `)
     const result = await client.query(`
       WITH combined AS (
         SELECT
@@ -86,7 +71,7 @@ const safetyRanking = async function (req, res) {
           RANK() OVER (ORDER BY s.safety_score) AS safety_rank,
           RANK() OVER (ORDER BY t.taxi_trips DESC) AS taxi_availability_rank
         FROM safety_scores_matview s
-        JOIN taxi_scores_matview t ON s.location_id = t.location_id
+        JOIN taxi_pu_matview t ON s.location_id = t.location_id
       )
       SELECT zone, borough_id, safety_rank, taxi_availability_rank
       FROM combined

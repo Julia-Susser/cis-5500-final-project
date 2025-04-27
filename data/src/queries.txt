@@ -39,7 +39,7 @@ CREATE INDEX idx_taxi_pickup_datetime ON taxi(tpep_pickup_datetime);
 CREATE INDEX idx_geometry_location_id ON nyc_geometry(location_id);
 CREATE INDEX idx_borough_lut_borough_id ON borough_lut(borough_id);
 
-CREATE MATERIALIZED VIEW taxi_scores_do_matview AS
+CREATE MATERIALIZED VIEW taxi_do_matview AS
 SELECT
   t.do_location_id as location_id,
   COUNT(*) AS taxi_trips
@@ -53,8 +53,8 @@ SELECT
   COALESCE(dropo.taxi_trips, 0) AS total_dropoffs
 FROM nyc_geometry g
 JOIN borough_lut b ON g.borough_id = b.borough_id
-LEFT JOIN taxi_scores_matview pu ON g.location_id = pu.location_id
-LEFT JOIN taxi_scores_do_matview dropo ON g.location_id = dropo.location_id
+LEFT JOIN taxi_pu_matview pu ON g.location_id = pu.location_id
+LEFT JOIN taxi_do_matview dropo ON g.location_id = dropo.location_id
 WHERE g.location_id = 3
 GROUP BY g.zone, b.borough, pu.taxi_trips, dropo.taxi_trips;
 
@@ -201,7 +201,7 @@ JOIN borough_lut b ON c.borough_id = b.borough_id
 JOIN nyc_geometry g ON g.borough_id = b.borough_id
 GROUP BY g.location_id, g.zone, g.borough_id;
 
-CREATE MATERIALIZED VIEW taxi_scores_matview AS
+CREATE MATERIALIZED VIEW taxi_pu_matview AS
 SELECT
   t.pu_location_id as location_id,
   COUNT(*) AS taxi_trips
@@ -209,7 +209,7 @@ FROM taxi t
 GROUP BY t.pu_location_id;
 
 CREATE INDEX idx_safety_location_id ON safety_scores_matview(location_id);
-CREATE INDEX idx_taxi_location_id ON taxi_scores_matview(location_id);
+CREATE INDEX idx_taxi_location_id ON taxi_pu_matview(location_id);
 
 
 WITH combined AS (
@@ -222,7 +222,7 @@ WITH combined AS (
     RANK() OVER (ORDER BY s.safety_score) AS safety_rank,
     RANK() OVER (ORDER BY t.taxi_trips DESC) AS taxi_availability_rank
   FROM safety_scores_matview s
-  JOIN taxi_scores_matview t ON s.location_id = t.location_id
+  JOIN taxi_pu_matview t ON s.location_id = t.location_id
 )
 SELECT
   zone,
@@ -248,7 +248,7 @@ Subquery Scan on combined  (cost=43.29..51.04 rows=1 width=36) (actual time=0.76
                                 ->  Seq Scan on safety_scores_matview s  (cost=0.00..6.59 rows=259 width=32) (actual time=0.012..0.039 rows=259 loops=1)
                                 ->  Hash  (cost=4.59..4.59 rows=259 width=12) (actual time=0.104..0.106 rows=259 loops=1)
                                       Buckets: 1024  Batches: 1  Memory Usage: 20kB
-                                      ->  Seq Scan on taxi_scores_matview t  (cost=0.00..4.59 rows=259 width=12) (actual time=0.009..0.048 rows=259 loops=1)
+                                      ->  Seq Scan on taxi_pu_matview t  (cost=0.00..4.59 rows=259 width=12) (actual time=0.009..0.048 rows=259 loops=1)
 Planning Time: 0.293 ms
 Execution Time: 1.014 ms
 
@@ -593,7 +593,7 @@ SELECT
   COALESCE(ta.taxi_trips, 0) AS pickup_count
 FROM nyc_geometry g
 JOIN borough_lut b ON g.borough_id = b.borough_id
-LEFT JOIN taxi_scores_matview ta ON g.location_id = ta.location_id
+LEFT JOIN taxi_pu_matview ta ON g.location_id = ta.location_id
 LEFT JOIN collision_activity ca ON g.location_id = ca.location_id
 WHERE
   COALESCE(ca.collision_count, 0) > 10
@@ -624,7 +624,7 @@ Sort  (cost=3298.69..3298.75 rows=24 width=63) (actual time=23.874..23.878 rows=
                                       ->  Seq Scan on collision  (cost=0.00..2802.34 rows=64334 width=4) (actual time=0.004..14.893 rows=64334 loops=1)
               ->  Hash  (cost=4.60..4.60 rows=260 width=12) (actual time=0.075..0.075 rows=260 loops=1)
                     Buckets: 1024  Batches: 1  Memory Usage: 20kB
-                    ->  Seq Scan on taxi_scores_matview ta  (cost=0.00..4.60 rows=260 width=12) (actual time=0.020..0.044 rows=260 loops=1)
+                    ->  Seq Scan on taxi_pu_matview ta  (cost=0.00..4.60 rows=260 width=12) (actual time=0.020..0.044 rows=260 loops=1)
         ->  Hash  (cost=1.05..1.05 rows=5 width=36) (actual time=0.013..0.014 rows=6 loops=1)
               Buckets: 1024  Batches: 1  Memory Usage: 9kB
               ->  Seq Scan on borough_lut b  (cost=0.00..1.05 rows=5 width=36) (actual time=0.009..0.010 rows=6 loops=1)
