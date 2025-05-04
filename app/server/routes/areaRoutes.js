@@ -1,6 +1,9 @@
 const connection = require('../db');
 
-// Function to find trips with outlier tips (Query 12)
+
+// Function to find trips with outlier tips
+// Route: GET /area/tip_analysis
+// Description: Retrieves trips with tips that are outliers based on a precomputed percentile threshold.
 const tipAnalysis = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -32,7 +35,9 @@ const tipAnalysis = async function (req, res) {
 };
 
 
-// Function to find collision hotspots with very few taxi pickups (Query 13)
+// Function to find collision hotspots with very few taxi pickups
+// Route: GET /area/collision_hotspots
+// Description: Identifies zones with a high number of collisions but very few taxi pickups.
 const collisionHotspots = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -65,7 +70,9 @@ const collisionHotspots = async function (req, res) {
   }
 };
 
-// Function to analyze collisions and taxi pickups within 5000 units of each other (Query 14)
+// Function to analyze collisions and taxi pickups within 5000 units of each other
+// Route: GET /area/proximity_analysis
+// Description: Analyzes collisions and taxi pickups that are within 5000 meters of each other on a specific date.
 const proximityAnalysis = async function (req, res) {
   const client = await connection.connect();
   try {

@@ -1,6 +1,8 @@
 const connection = require('../db');
 
 // Function to retrieve total taxi pickups and drop-offs in a given location
+// Route: GET /location/:location_id/pickups_dropoffs
+// Description: Retrieves the total number of taxi pickups and drop-offs for a specific location.
 const pickupsDropoffs = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -29,6 +31,8 @@ GROUP BY g.zone, b.borough, pu.taxi_trips, dropo.taxi_trips;
 };
 
 // Function to retrieve the number of collisions and injuries recorded in the area
+// Route: GET /location/:location_id/collisions_injuries
+// Description: Retrieves the number of collisions and total injuries for a specific location.
 const collisionsInjuries = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -54,8 +58,9 @@ const collisionsInjuries = async function (req, res) {
 };
 
 
-
 // Function to retrieve the ranking of the area in terms of safety and taxi availability
+// Route: GET /location/:location_id/safety_ranking
+// Description: Retrieves the safety ranking and taxi availability ranking for a specific location.
 const safetyRanking = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -87,6 +92,9 @@ const safetyRanking = async function (req, res) {
   }
 };
 
+// Function to retrieve NYC geometry data
+// Route: GET /location/nyc_geometry
+// Description: Retrieves NYC geometry data, including zones, boroughs, and geometry shapes.
 const getNYCGeometry = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -105,7 +113,9 @@ const getNYCGeometry = async function (req, res) {
   }
 };
 
+//function to parse shape into geometry so that easier to do proximity analysis
 function parseWKTPolygon(wkt) {
+  //different types of shapes so different formula for geometry
   if (wkt.startsWith('POLYGON')) {
     const coords = wkt
       .replace("POLYGON ((", "")
@@ -143,7 +153,9 @@ function parseWKTPolygon(wkt) {
 }
 
 
-
+// Function to retrieve NYC geometry map data
+// Route: GET /location/nyc_geometry_map
+// Description: Retrieves NYC geometry map data as GeoJSON for visualization.
 const getNYCGeometryMap = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -175,6 +187,9 @@ const getNYCGeometryMap = async function (req, res) {
   }
 };
 
+// Function to retrieve distinct contributing factors for collisions
+// Route: GET /collision/contributing_factors
+// Description: Retrieves a list of distinct contributing factors for collisions.
 const collisionContributingFactors = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -190,6 +205,9 @@ const collisionContributingFactors = async function (req, res) {
   }
 };
 
+// Function to retrieve locations with a specific contributing factor on a given date
+// Route: GET /collision/location_with_factor
+// Description: Retrieves locations where a specific contributing factor caused collisions on a given date.
 const collisionFactorsByLocation = async function (req, res) {
   const { date, factor } = req.query;
   const client = await connection.connect();

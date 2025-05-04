@@ -1,6 +1,8 @@
 const connection = require('../db');
 
-// Function to analyze how safety (collisions) varies by season (Query 7)
+// Function to analyze how safety (collisions) varies by season
+// Route: GET /time/safety_by_season
+// Description: Groups collisions by season (Winter, Spring, Summer, Fall) and counts the number of collisions in each season.
 const safetyBySeason = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -27,8 +29,9 @@ const safetyBySeason = async function (req, res) {
     client.release();
   }
 };
-
-// Function to compute the collision rate per 1,000 taxi rides at a location in a date range (Query 8)
+// Function to compute the collision rate per 1,000 taxi rides at a location in a date range 
+// Route: GET /time/collision_rate
+// Description: Calculates the collision rate per 1,000 taxi rides for a specific location and date range.
 const collisionRate = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -67,7 +70,9 @@ const collisionRate = async function (req, res) {
   }
 };
 
-// Function to find same collision date-hours (Query 9)
+// Function to find same collision date-hours
+// Route: GET /time/same_collision_date_hours
+// Description: Identifies hours on the same date with multiple collisions and returns the count of collisions for each hour.
 const sameCollisionDateHours = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -91,7 +96,9 @@ const sameCollisionDateHours = async function (req, res) {
   }
 };
 
-// Function to list collisions in a given date range (Query 10)
+// Function to list collisions in a given date range
+// Route: GET /time/collisions_in_date_range
+// Description: Retrieves a paginated list of collisions that occurred within a specified date range.
 const collisionsInDateRange = async function (req, res) {
   const client = await connection.connect();
   try {
@@ -127,6 +134,9 @@ const collisionsInDateRange = async function (req, res) {
   }
 };
 
+// Function to analyze weekly collisions for a borough (Query 11)
+// Route: GET /time/weekly_collisions
+// Description: Retrieves the number of collisions grouped by location for a specific borough and date range.
 const weeklyCollisions = async function (req, res) {
   try {
       const { borough, start_date, end_date } = req.query;
