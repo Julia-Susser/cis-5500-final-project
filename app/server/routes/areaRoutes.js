@@ -76,18 +76,18 @@ const proximityAnalysis = async function (req, res) {
     }
 
     const result = await client.query(`
-     WITH nearby_taxi_locations AS (
+      WITH nearby_taxi_locations AS (
   SELECT
     c.collision_id,
     c.crash_date,
     g.location_id
   FROM (
-    SELECT collision_id, crash_date, geom
-    FROM collision_points_mat
+    SELECT collision_id, crash_date, geometry
+    FROM collision
     WHERE crash_date = $1
   ) AS c
   JOIN nyc_geometry g
-    ON ST_DWithin(c.geom, g.geometry, 5000)
+    ON ST_DWithin(c.geometry, g.geometry, 5000)
 )
 SELECT
   ntl.collision_id,
@@ -99,7 +99,7 @@ JOIN taxi_pickups_by_date_location t
 GROUP BY ntl.collision_id
 ORDER BY nearby_taxi_count DESC
 LIMIT 10;
-    `, [date]);
+     `, [date]);
     console.log("QUERY: proximity");
     res.json(result.rows);
   } catch (error) {

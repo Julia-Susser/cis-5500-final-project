@@ -73,6 +73,15 @@ app.get('/collision/proximity_analysis', routes.proximityAnalysis);
 // Takes: `borough`, `start_date`, and `end_date` as query parameters.
 app.get('/safety/weekly_collisions', routes.weeklyCollisions);
 
+
+// Query 16: Get all unique contributing factors that appear in the collision dataset.
+// Params: None
+app.get('/collision/contributing_factors', routes.collisionContributingFactors);
+
+// Query 17:Get all location IDs where there exists a collision caused by a specific contributing factor within a given date range.
+// Query Params: `date`, `factor`
+app.get('/collision/location_with_factor', routes.  collisionFactorsByLocation);
+
 // =======================
 // Start the server
 // =======================

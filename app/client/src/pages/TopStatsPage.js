@@ -11,7 +11,11 @@ import {
   Paper,
   TextField,
   Box,
-  Button
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 
 const config = require('../config.json');
@@ -21,6 +25,10 @@ export default function TopStatsPage() {
   const [collisionHotspots, setCollisionHotspots] = useState([]);
   const [proximityStats, setProximityStats] = useState([]);
   const [date, setDate] = useState('2024-06-01');
+  const [factorDate, setFactorDate] = useState('2024-01-01');
+  const [selectedFactor, setSelectedFactor] = useState('');
+  const [contributingFactors, setContributingFactors] = useState([]);
+  const [factorLocations, setFactorLocations] = useState([]);
 
   const fetchProximity = () => {
     setProximityStats([]);
@@ -43,7 +51,27 @@ export default function TopStatsPage() {
     fetch(`http://${config.server_host}:${config.server_port}/area/collision_hotspots`)
       .then(res => res.json())
       .then(data => setCollisionHotspots(Array.isArray(data) ? data : []));
+
+    fetch(`http://${config.server_host}:${config.server_port}/collision/contributing_factors`)
+      .then(res => res.json())
+      .then(data => setContributingFactors(Array.isArray(data) ? data : []));
+      console.log(contributingFactors)
   }, []);
+
+
+
+  const fetchLocationsByFactor = () => {
+    const url = `http://${config.server_host}:${config.server_port}/collision/location_with_factor?factor=${encodeURIComponent(selectedFactor)}&date=${factorDate}`;
+    console.log(url);
+    fetch(url)
+      .then(res => res.json())
+      .then(data => setFactorLocations(Array.isArray(data) ? data : []))
+      .catch(err => {
+        console.error("Error fetching locations by factor:", err);
+        setFactorLocations([]);
+      });
+  };
+
 
   return (
     <Container>
@@ -138,9 +166,58 @@ export default function TopStatsPage() {
 </TableBody>
         </Table>
       </TableContainer>
+
+      <Typography variant="h5" gutterBottom>Locations With Selected Contributing Factor</Typography>
+      <Box display="flex" gap={2} alignItems="center" mb={2}>
+        <FormControl style={{ minWidth: 200 }}>
+          <InputLabel id="factor-select-label">Factor</InputLabel>
+          <Select
+            labelId="factor-select-label"
+            value={selectedFactor}
+            label="Factor"
+            onChange={(e) => setSelectedFactor(e.target.value)}
+          >
+            {contributingFactors.map((f, idx) => (
+              <MenuItem key={idx} value={f}>{f}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <TextField
+          label="Start Date"
+          type="date"
+          value={factorDate}
+          onChange={(e) => setFactorDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+        <Button variant="contained" onClick={fetchLocationsByFactor}>Search</Button>
+      </Box>
+      <TableContainer component={Paper}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Zone</TableCell>
+              <TableCell>Borough</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {factorLocations.map((row, idx) => (
+              <TableRow key={idx}>
+                <TableCell>{row.zone}</TableCell>
+                <TableCell>{row.borough}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+
+
       <Box sx={{ height: '300px' }} />
     </Container>
   );
+
+
+  
 
 
 }

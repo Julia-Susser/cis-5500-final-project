@@ -710,14 +710,6 @@ Optimization:
 CREATE INDEX idx_collision_geom ON collision_points_mat USING GIST (geom);
 CREATE INDEX idx_nyc_geom_geom ON nyc_geometry USING GIST (geometry);
 
-CREATE MATERIALIZED VIEW collision_points_mat AS
-SELECT
-  c.collision_id,
-  c.location_id,
-  c.crash_date,
-  ST_Transform(ST_SetSRID(ST_MakePoint(c.longitude, c.latitude), 4326), 2263) AS geom
-FROM collision c
-WHERE c.longitude IS NOT NULL AND c.latitude IS NOT NULL AND c.crash_date IS NOT NULL AND c.location_id IS NOT NULL;
 
 CREATE MATERIALIZED VIEW taxi_pickups_by_date_location AS
 SELECT
@@ -737,12 +729,12 @@ WITH nearby_taxi_locations AS (
     c.crash_date,
     g.location_id
   FROM (
-    SELECT collision_id, crash_date, geom
-    FROM collision_points_mat
+    SELECT collision_id, crash_date, geometry
+    FROM collision
     WHERE crash_date = '2024-06-01'
   ) AS c
   JOIN nyc_geometry g
-    ON ST_DWithin(c.geom, g.geometry, 5000)
+    ON ST_DWithin(c.geometry, g.geometry, 5000)
 )
 SELECT
   ntl.collision_id,
@@ -756,31 +748,44 @@ ORDER BY nearby_taxi_count DESC
 LIMIT 10;
 
 
-Sort  (cost=561311.08..561311.17 rows=35 width=12) (actual time=356.361..356.375 rows=229 loops=1)
-  Sort Key: (count(*)) DESC
-  Sort Method: quicksort  Memory: 32kB
-  ->  GroupAggregate  (cost=561309.57..561310.18 rows=35 width=12) (actual time=356.124..356.328 rows=229 loops=1)
-        Group Key: collision_points_mat.collision_id
-        ->  Sort  (cost=561309.57..561309.66 rows=35 width=4) (actual time=356.112..356.180 rows=1417 loops=1)
-              Sort Key: collision_points_mat.collision_id
-              Sort Method: quicksort  Memory: 49kB
-              ->  Nested Loop  (cost=133.85..561308.67 rows=35 width=4) (actual time=5.552..355.932 rows=1417 loops=1)
-"                    Join Filter: st_dwithin(collision_points_mat.geom, g.geometry, '5000'::double precision)"
-                    Rows Removed by Join Filter: 43418
-                    ->  Seq Scan on collision_points_mat  (cost=0.00..1392.46 rows=248 width=36) (actual time=1.158..4.142 rows=245 loops=1)
-                          Filter: (crash_date = '2024-06-01 00:00:00'::timestamp without time zone)
-                          Rows Removed by Filter: 63472
-                    ->  Materialize  (cost=133.85..1358.66 rows=180 width=6073) (actual time=0.004..0.032 rows=183 loops=245)
-                          ->  Hash Join  (cost=133.85..1357.76 rows=180 width=6073) (actual time=0.443..3.976 rows=183 loops=1)
-                                Hash Cond: (t.pu_location_id = g.location_id)
-                                ->  Seq Scan on taxi_pickups_by_date_location t  (cost=0.00..1223.43 rows=180 width=4) (actual time=0.046..3.502 rows=185 loops=1)
-                                      Filter: (pickup_date = '2024-06-01'::date)
-                                      Rows Removed by Filter: 66969
-                                ->  Hash  (cost=130.60..130.60 rows=260 width=6077) (actual time=0.385..0.387 rows=260 loops=1)
-                                      Buckets: 1024  Batches: 1  Memory Usage: 546kB
-                                      ->  Seq Scan on nyc_geometry g  (cost=0.00..130.60 rows=260 width=6077) (actual time=0.007..0.168 rows=260 loops=1)
-Planning Time: 9.506 ms
-Execution Time: 359.005 ms
+Limit  (cost=546399.20..546399.22 rows=10 width=12) (actual time=860.971..861.075 rows=10 loops=1)
+  ->  Sort  (cost=546399.20..546399.29 rows=39 width=12) (actual time=860.969..861.071 rows=10 loops=1)
+        Sort Key: (count(*)) DESC
+        Sort Method: top-N heapsort  Memory: 25kB
+        ->  Finalize GroupAggregate  (cost=546394.86..546398.35 rows=39 width=12) (actual time=860.630..861.022 rows=229 loops=1)
+              Group Key: collision.collision_id
+              ->  Gather Merge  (cost=546394.86..546397.85 rows=23 width=12) (actual time=860.612..860.933 rows=229 loops=1)
+                    Workers Planned: 1
+                    Workers Launched: 1
+                    ->  Partial GroupAggregate  (cost=545394.85..545395.25 rows=23 width=12) (actual time=732.714..732.901 rows=114 loops=2)
+                          Group Key: collision.collision_id
+                          ->  Sort  (cost=545394.85..545394.91 rows=23 width=4) (actual time=732.704..732.774 rows=708 loops=2)
+                                Sort Key: collision.collision_id
+                                Sort Method: quicksort  Memory: 25kB
+                                Worker 0:  Sort Method: quicksort  Memory: 25kB
+                                ->  Merge Join  (cost=545393.04..545394.33 rows=23 width=4) (actual time=732.070..732.568 rows=708 loops=2)
+                                      Merge Cond: (g.location_id = t.pu_location_id)
+                                      ->  Sort  (cost=544162.88..544162.96 rows=33 width=8) (actual time=721.964..722.060 rows=932 loops=2)
+                                            Sort Key: g.location_id
+                                            Sort Method: quicksort  Memory: 44kB
+                                            Worker 0:  Sort Method: quicksort  Memory: 73kB
+                                            ->  Nested Loop  (cost=0.00..544162.04 rows=33 width=8) (actual time=2.198..721.441 rows=932 loops=2)
+"                                                  Join Filter: st_dwithin(collision.geometry, g.geometry, '5000'::double precision)"
+                                                  Rows Removed by Join Filter: 31048
+                                                  ->  Parallel Seq Scan on collision  (cost=0.00..2850.04 rows=160 width=36) (actual time=0.862..3.831 rows=123 loops=2)
+                                                        Filter: (crash_date = '2024-06-01 00:00:00'::timestamp without time zone)
+                                                        Rows Removed by Filter: 32044
+                                                  ->  Seq Scan on nyc_geometry g  (cost=0.00..130.60 rows=260 width=6077) (actual time=0.002..0.140 rows=260 loops=246)
+                                      ->  Sort  (cost=1230.17..1230.62 rows=180 width=4) (actual time=10.091..10.172 rows=722 loops=2)
+                                            Sort Key: t.pu_location_id
+                                            Sort Method: quicksort  Memory: 25kB
+                                            Worker 0:  Sort Method: quicksort  Memory: 25kB
+                                            ->  Seq Scan on taxi_pickups_by_date_location t  (cost=0.00..1223.43 rows=180 width=4) (actual time=0.078..10.049 rows=185 loops=2)
+                                                  Filter: (pickup_date = '2024-06-01'::date)
+                                                  Rows Removed by Filter: 66969
+Planning Time: 1.110 ms
+Execution Time: 861.148 ms
+
 
 
 
