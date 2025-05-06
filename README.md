@@ -2,6 +2,58 @@
 
 This application provides insights into 2024 collision and taxi statistics, enabling users to analyze trends and explore the tradeoffs between safety and taxi availability. Users can investigate fare patterns, trip distances, accident rates, and safety rankings across various locations and time periods.
 
+
+## Running the Application
+
+### Step 1: Run the Backend Server
+
+1. Navigate to the `server/` directory:
+
+   ```bash
+   cd app/server
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Start the server:
+
+   ```bash
+   npm start
+   ```
+
+4. The backend server will run at [http://localhost:3001](http://localhost:3001)  
+   (or the port specified in `config.json`).
+
+---
+
+### Step 2: Run the Frontend Application
+
+1. Navigate to the `client/` directory:
+
+   ```bash
+   cd app/client
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+
+   ```bash
+   npm start
+   ```
+
+4. Open the application in your browser at:  
+   [http://localhost:3000](http://localhost:3000)
+
+
 ## Project Structure
 
 The repository is organized as follows:
