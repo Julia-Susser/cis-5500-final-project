@@ -7,13 +7,13 @@ import 'leaflet/dist/leaflet.css';
 
 const config = require('../config.json');
 
-// Add these helper functions at the top of your file, after the imports
+// Helper function to determine the color based on collision count
 function getColor(count, minCount, maxCount) {
-  // Return grey for any undefined/null values
+  // Return grey for undefined/null values or if min and max are the same
   if (count === undefined || count === null || 
       minCount === undefined || maxCount === undefined || 
       minCount === maxCount) {
-    return '#808080';  // grey color
+    return '#808080';  // Grey color
   }
   
   // Calculate percentage between min and max
@@ -28,7 +28,7 @@ function getColor(count, minCount, maxCount) {
   return `rgb(255, ${green}, 0)`;
 }
 
-// Add FitBounds component for auto-zooming
+// Component to automatically fit map bounds to the displayed features
 function FitBounds({ features }) {
   const map = useMap();
   React.useEffect(() => {
@@ -47,7 +47,7 @@ function FitBounds({ features }) {
 }
 
 export default function WeeklyCollisionsPage() {
-  // State management
+  // State variables for managing boroughs, geometry data, weeks, and collision counts
   const [boroughs, setBoroughs] = useState([]);
   const [selectedBorough, setSelectedBorough] = useState('All Boroughs');
   const [geometryData, setGeometryData] = useState([]);
@@ -56,7 +56,7 @@ export default function WeeklyCollisionsPage() {
   const [boroughGeometryMap, setBoroughGeometryMap] = useState([]);
   const [collisionCounts, setCollisionCounts] = useState([]);
 
-  // Generate available weeks (last 12 weeks)
+  // Generate available weeks for the last 12 weeks
   useEffect(() => {
     const weeks = [];
     const today = new Date();
@@ -74,7 +74,7 @@ export default function WeeklyCollisionsPage() {
     setSelectedWeekIndex(0);
   }, []);
 
-  // Generate weeks for 2024
+  // Generate weeks for the year 2024
   useEffect(() => {
     const weeks = [];
     const startDate = new Date('2024-01-01');
@@ -85,7 +85,7 @@ export default function WeeklyCollisionsPage() {
       startDate.setDate(startDate.getDate() + 1);
     }
 
-    // Generate all weeks until end of 2024
+    // Generate all weeks until the end of 2024
     let currentDate = new Date(startDate);
     while (currentDate <= endDate) {
       weeks.push({
@@ -116,15 +116,14 @@ export default function WeeklyCollisionsPage() {
       });
   }, []);
 
-  // Update the collision data fetch useEffect
+  // Fetch collision data for the selected week and borough
   useEffect(() => {
-    if (availableWeeks[selectedWeekIndex]) {  // Remove the selectedBorough check
+    if (availableWeeks[selectedWeekIndex]) {
       const startDate = new Date(availableWeeks[selectedWeekIndex].value);
       const endDate = new Date(availableWeeks[selectedWeekIndex].value);
       endDate.setDate(startDate.getDate() + 6);
 
       const url = new URL(`http://${config.server_host}:${config.server_port}/safety/weekly_collisions`);
-      // Only add borough parameter if a specific borough is selected
       if (selectedBorough !== 'All Boroughs') {
         url.searchParams.append('borough', selectedBorough);
       }
@@ -160,13 +159,12 @@ export default function WeeklyCollisionsPage() {
     fetch(`http://${config.server_host}:${config.server_port}/location/nyc_geometry_map`)
       .then(res => res.json())
       .then(data => {
-        // Filter features for the selected borough, or show all if "All Boroughs" is selected
         const boroughFeatures = selectedBorough === 'All Boroughs' 
           ? data.features
           : data.features.filter(feature => feature.properties.borough === selectedBorough);
 
-          console.log('data.features: ', data.features);
-          console.log('Borough.features: ', boroughFeatures);
+        console.log('data.features: ', data.features);
+        console.log('Borough.features: ', boroughFeatures);
 
         setBoroughGeometryMap(boroughFeatures);
       })
@@ -175,11 +173,13 @@ export default function WeeklyCollisionsPage() {
       });
   }, [selectedBorough]);
 
+  // Handle borough selection change
   const handleBoroughChange = (event) => {
     setSelectedBorough(event.target.value);
     setBoroughGeometryMap([]); 
   };
 
+  // Generate slider marks for weeks
   const marks = availableWeeks.map((week, index) => ({
     value: index,
     label: week.month
@@ -191,6 +191,7 @@ export default function WeeklyCollisionsPage() {
     <Container>
       <h1>Weekly Collisions by Neighborhood</h1>
       
+      {/* Borough selection dropdown */}
       <FormControl fullWidth sx={{ mb: 2 }}>
         <InputLabel>Borough</InputLabel>
         <Select value={selectedBorough} onChange={handleBoroughChange}>
@@ -202,6 +203,7 @@ export default function WeeklyCollisionsPage() {
         </Select>
       </FormControl>
 
+      {/* Week selection slider */}
       <div style={{ padding: '20px 10px' }}>
         <Typography gutterBottom>
           Selected Week: {availableWeeks[selectedWeekIndex]?.label || 'Loading...'}
@@ -219,6 +221,7 @@ export default function WeeklyCollisionsPage() {
         />
       </div>
 
+      {/* Map displaying collision data */}
       <MapContainer
         center={[40.7128, -74.0060]}
         zoom={11}
@@ -230,28 +233,23 @@ export default function WeeklyCollisionsPage() {
           <>
             <FitBounds features={boroughGeometryMap.map(item => item.geometry)} />
             {(() => {
-              // Map collision counts to their location IDs for easier lookup
               const collisionMap = new Map(
                 collisionCounts.map(c => [c.location_id, c.collision_count])
               );
-              
-              // Get all counts including zeros for missing locations
               const allCounts = boroughGeometryMap.map(geo => 
                 collisionMap.get(geo.properties.location_id) || 0
               );
-              
               const minCount = Math.min(...allCounts);
               const maxCount = Math.max(...allCounts);
               
               return boroughGeometryMap.map((geo, idx) => {
                 const locationId = geo.properties.location_id;
                 const count = collisionMap.get(locationId) || 0;
-                
                 const fillColor = getColor(count, minCount, maxCount);
                 
                 return (
                   <GeoJSON 
-                    key={`${locationId}-${idx}-${count}`} // Add count to key to force re-render
+                    key={`${locationId}-${idx}-${count}`}
                     data={geo.geometry} 
                     style={{
                       color: '#666',
@@ -260,10 +258,7 @@ export default function WeeklyCollisionsPage() {
                       fillColor: fillColor,
                     }}
                     onEachFeature={(feature, layer) => {
-                      // Create the initial popup
                       const popup = L.popup();
-                      
-                      // Update popup content whenever the layer is clicked
                       layer.on('click', () => {
                         popup.setContent(
                           `Location: ${geo.properties.zone}<br/>
@@ -279,7 +274,7 @@ export default function WeeklyCollisionsPage() {
           </>
         )}
       </MapContainer>
-       <Box sx={{ height: '300px' }} />
+      <Box sx={{ height: '300px' }} />
     </Container>
   );
 }

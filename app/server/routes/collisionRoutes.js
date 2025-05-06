@@ -46,7 +46,6 @@ const collisionFactorsByLocation = async function (req, res) {
       );
     `;
     const values = [date, factor];
-
     const { rows } = await client.query(query, values);
     res.json(rows);
   } catch (err) {

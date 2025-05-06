@@ -7,6 +7,9 @@ const pickupsDropoffs = async function (req, res) {
   const client = await connection.connect();
   try {
     const locationId = req.params.location_id;
+    if (!locationId){
+      return res.status(400).json({ error: 'Missing required query parameter: location id' });
+    }
     const result = await client.query(`
      SELECT
   g.zone,
@@ -37,6 +40,9 @@ const collisionsInjuries = async function (req, res) {
   const client = await connection.connect();
   try {
     const locationId = req.params.location_id;
+    if (!locationId){
+      return res.status(400).json({ error: 'Missing required query parameter: location id' });
+    }
     const result = await client.query(`
       SELECT g.zone, b.borough,
              COUNT(*) AS collisions,
@@ -65,6 +71,9 @@ const safetyRanking = async function (req, res) {
   const client = await connection.connect();
   try {
     const locationId = req.params.location_id;
+    if (!locationId){
+      return res.status(400).json({ error: 'Missing required query parameter: location id' });
+    }
     const result = await client.query(`
       WITH combined AS (
         SELECT

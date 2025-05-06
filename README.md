@@ -66,9 +66,7 @@ final-project/
 │   │   ├── public/
 │   │   ├── src/
 │   │   │   ├── components/
-│   │   │   │   ├── LazyTable.js
 │   │   │   │   ├── NavBar.js
-│   │   │   │   ├── SongCard.js
 │   │   │   ├── helpers/
 │   │   │   ├── pages/
 │   │   │   │   ├── hw3/

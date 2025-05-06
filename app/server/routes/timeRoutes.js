@@ -145,11 +145,6 @@ const weeklyCollisions = async function (req, res) {
       if (!borough || !start_date || !end_date) {
           return res.status(400).json({ error: 'Missing required parameters' });
       }
-
-      console.log('Query params:', { borough, start_date, end_date });
-
-      console.log('Connection status:', connection?._connected);
-
       const result = await connection.query(`
           SELECT 
               g.location_id,
@@ -164,7 +159,9 @@ const weeklyCollisions = async function (req, res) {
           ORDER BY collision_count DESC
       `, [borough, start_date, end_date]);
 
-      console.log('Query results:', result.rows);
+      console.log("QUERY: weekly collisions");
+
+
       res.json(result.rows);
   } catch (error) {
       console.error('Error analyzing collisions:', error);
