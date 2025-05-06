@@ -2,6 +2,40 @@
 
 This application provides insights into 2024 collision and taxi statistics, enabling users to analyze trends and explore the tradeoffs between safety and taxi availability. Users can investigate fare patterns, trip distances, accident rates, and safety rankings across various locations and time periods.
 
+---
+
+## Dependencies
+
+### Backend
+- **Node.js** (v18+)
+- **Express** – Web server framework
+- **pg** – PostgreSQL client for Node.js
+- **dotenv** – Loads environment variables from `.env`
+
+### Database
+- **PostgreSQL** – Relational database engine
+- **PostGIS** – Spatial database extender for PostgreSQL
+
+### Frontend
+- **React**
+- **Axios** – Promise-based HTTP client for browser and Node.js
+- **react-router-dom** – Routing library for React
+- **Leaflet** – Interactive maps
+- **react-leaflet** – React wrapper for Leaflet
+
+> To install all dependencies, run:
+> ```bash
+> npm install
+> ```
+
+> For frontend-specific dependencies (if in separate folder):
+> ```bash
+> cd client
+> npm install
+> ```
+
+---
+
 
 ## Running the Application
 
